@@ -1,0 +1,22 @@
+<!-- user_status.html -->
+<hr>
+{% if name: %}
+    <p class="center-align">  
+        Welcome, {{ name }}
+        <a href="{{ url_for('signout') }}"> 
+            Signout
+        </a>                        
+    </p>
+{% else:  %}
+    <p class="center-align">  
+        <a href="{{ url_for('signin') }}"> 
+            Sign In with Linkedin
+        </a>
+        <details class="center-align">
+            <summary>Why do I need to Sign In?</summary>
+            Read your summaries when you Sign In back
+        </details>
+    </p>  
+{% endif %}         
+<hr>
+<br>

@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h4 class="subtitle">
+  View the Entries in the Database
+</h4>
+<br>
+{% include 'user_status.html' %}
+  <table id="data" class="table table-striped table-responsive">
+    <thead>
+      <tr>
+        <th>Timestamp + ID ++</th>
+        <th>
+          URL or PDF / JSON  <hr>
+          text2summarize <hr>                           
+          openAIsummary
+        </th>          
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+        <tr>
+          <td>
+            {{ entry.timestamp }}
+            <ul>
+              <li>
+                ID: {{ entry.id }}
+              </li>
+              <li>
+                <a href="{{ url_for('share', hash=entry.text2summarize_hash) }}" target="_blank"><svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+                  width="18" height="18" class="footer-img"  viewBox="0 0 483 483" xml:space="preserve" style="fill: var(--text-color);">
+                      <g>
+                          <path d="M395.72,0c-48.204,0-87.281,39.078-87.281,87.281c0,2.036,0.164,4.03,0.309,6.029l-161.233,75.674
+                              c-15.668-14.971-36.852-24.215-60.231-24.215c-48.204,0.001-87.282,39.079-87.282,87.282c0,48.204,39.078,87.281,87.281,87.281
+                              c15.206,0,29.501-3.907,41.948-10.741l69.789,58.806c-3.056,8.896-4.789,18.396-4.789,28.322c0,48.204,39.078,87.281,87.281,87.281
+                              c48.205,0,87.281-39.078,87.281-87.281s-39.077-87.281-87.281-87.281c-15.205,0-29.5,3.908-41.949,10.74l-69.788-58.805
+                              c3.057-8.891,4.789-18.396,4.789-28.322c0-2.035-0.164-4.024-0.308-6.029l161.232-75.674c15.668,14.971,36.852,24.215,60.23,24.215
+                              c48.203,0,87.281-39.078,87.281-87.281C482.999,39.079,443.923,0,395.72,0z"/>
+                      </g>
+                  </svg></a>
+              </li>
+              {% if is_authenticated %}
+              <li>
+                <a href="{{ url_for('delete_entry', entry_id=entry.id) }}" target="_blank"><svg style="fill: var(--text-color);" width="18px" height="18px"viewBox="0 -0.5 21 21" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                  <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                      <g id="Dribbble-Light-Preview" transform="translate(-179.000000, -360.000000)" style="fill: var(--text-color);">
+                          <g id="icons" transform="translate(56.000000, 160.000000)">
+                              <path d="M130.35,216 L132.45,216 L132.45,208 L130.35,208 L130.35,216 Z M134.55,216 L136.65,216 L136.65,208 L134.55,208 L134.55,216 Z M128.25,218 L138.75,218 L138.75,206 L128.25,206 L128.25,218 Z M130.35,204 L136.65,204 L136.65,202 L130.35,202 L130.35,204 Z M138.75,204 L138.75,200 L128.25,200 L128.25,204 L123,204 L123,206 L126.15,206 L126.15,220 L140.85,220 L140.85,206 L144,206 L144,204 L138.75,204 Z" id="delete-[#1487]">
+              
+              </path>
+                          </g>
+                      </g>
+                  </g>
+              </svg></a>
+              </li>
+              <li>
+                <a href="{{ url_for('view', hash=entry.text2summarize_hash) }}" target="_blank"><svg style="fill: var(--text-color);" width="18px" height="18px" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path d="M432,320H400a16,16,0,0,0-16,16V448H64V128H208a16,16,0,0,0,16-16V80a16,16,0,0,0-16-16H48A48,48,0,0,0,0,112V464a48,48,0,0,0,48,48H400a48,48,0,0,0,48-48V336A16,16,0,0,0,432,320ZM488,0h-128c-21.37,0-32.05,25.91-17,41l35.73,35.73L135,320.37a24,24,0,0,0,0,34L157.67,377a24,24,0,0,0,34,0L435.28,133.32,471,169c15,15,41,4.5,41-17V24A24,24,0,0,0,488,0Z"/></svg></a>
+              </li>
+              <br>
+              Post by: {{ entry.name }} {{ entry.email }}
+              
+              {% endif %}
+            
+          </ul>
+
+
+          </td>
+          <td class="left-align">
+
+
+            {% if entry.openAItitle %}   
+            <h3>
+             Suggested Title:  {{ entry.openAItitle }} 
+            </h3>
+            <hr>
+            {% endif %}
+
+            {% if entry.posttype  == 1 %}   
+
+                <a href="{{ entry.url}}" target="_blank">
+                  {{ entry.url[:15] }}...
+                </a>
+                
+                      {% if entry.text2summarize_hash %}   
+                      <br>
+                      <hr>
+          
+                      <a href="/static/uploads/{{ entry.text2summarize_hash}}.json" target="_blank">
+                      JSON
+                      </a>
+                      {% endif %}
+
+            {% elif entry.posttype  == 0 %} 
+                Summary from Text
+                {% if entry.text2summarize_hash %}   
+                <br>
+                <hr>
+            
+                <a href="/static/uploads/{{ entry.text2summarize_hash}}.json" target="_blank">
+                JSON
+                </a>
+                {% endif %}                
+            
+            {% elif entry.posttype  == 2 %} 
+            <a href="/static/uploads/{{ entry.url}}" target="_blank">
+              {{ entry.url[:15] }}...
+            </a>
+                {% if entry.text2summarize_hash %}   
+                <br>
+                <hr>
+                 
+                <a href="/static/uploads/{{ entry.text2summarize_hash}}.json" target="_blank">
+                JSON
+                </a>
+                {% endif %}
+              {% elif entry.posttype  == 3 %}   
+
+              <a href="{{ entry.url}}" target="_blank">
+                YouTube: {{ entry.url[-12:] }}
+              </a>
+              
+                    {% if entry.text2summarize_hash %}   
+                    <br>
+                    <hr>
+        
+                    <a href="/static/uploads/{{ entry.text2summarize_hash}}.json" target="_blank">
+                    JSON
+                    </a>
+                    {% endif %}                
+            {% endif %}
+              <hr>
+              <p style="text-align: left;" data-id='{{entry.id}}' class="card">
+                {% if entry.text2summarize %}
+                {{ entry.text2summarize[:20] }}
+                <span class="dots">
+                  ...
+                </span>
+                <span class="more">
+                  {{ entry.text2summarize[21:] }}
+                </span>
+              {% else %}
+                <i>No content available</i>
+              {% endif %}
+                <button onclick='myFunction({{ entry.id }})' class="myBtn">Read more</button>
+              </p>
+              
+              <hr>
+
+            <p style="text-align: left;" data-id='{{entry.id}}' class="card2">
+                {% for index, para in enumerate(entry.openAIsummary.split('\n')) %}
+                {% set number = index | int %}
+                  {% if number < 2 %} 
+                    {{para}}<br>
+                  {% elif number == 2 %} 
+                    {{para}}<br>
+                    <span class="dots">
+                      ...
+                    </span>
+                    <span class="more">                    
+                  {% else %}
+
+                    {{para}}<br>
+
+                  {% endif %}
+                
+                {% endfor %}
+              </span>
+                <button onclick='myFunction2({{ entry.id }})' class="myBtn">Read more</button>
+            </p>  
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="pagination">
+    {% if entries.has_prev %}
+      <a href="{{ url_for('logs', page=entries.prev_num, per_page=entries.per_page) }}">Previous</a>
+    {% else %}
+      <span class="disabled">Previous</span>
+    {% endif %}
+    {% for num in entries.iter_pages() %}
+      {% if num %}
+        {% if num == entries.page %}
+          <span class="current">{{ num }}</span>
+        {% else %}
+          <a href="{{ url_for('logs', page=num, per_page=entries.per_page) }}">{{ num }}</a>
+        {% endif %}
+      {% else %}
+        <span class="ellipsis">...</span>
+      {% endif %}
+    {% endfor %}
+    {% if entries.has_next %}
+      <a href="{{ url_for('logs', page=entries.next_num, per_page=entries.per_page) }}">Next</a>
+    {% else %}
+      <span class="disabled">Next</span>
+    {% endif %}
+  </div>
+  <script>
+function myFunction(id) {
+  var dots = document.querySelector(`.card[data-id="${id}"] .dots`);
+  var moreText = document.querySelector(`.card[data-id="${id}"] .more`);
+  var btnText = document.querySelector(`.card[data-id="${id}"] .myBtn`);
+
+  if (dots.style.display === "none") {
+    dots.style.display = "inline";
+    btnText.innerHTML = "Read more";
+    moreText.style.display = "none";
+  } else {
+    dots.style.display = "none";
+    btnText.innerHTML = "Read less";
+    moreText.style.display = "inline";
+  }
+}
+
+function myFunction2(id) {
+  var dots = document.querySelector(`.card2[data-id="${id}"] .dots`);
+  var moreText = document.querySelector(`.card2[data-id="${id}"] .more`);
+  var btnText = document.querySelector(`.card2[data-id="${id}"] .myBtn`);
+
+  if (dots.style.display === "none") {
+    dots.style.display = "inline";
+    btnText.innerHTML = "Read more";
+    moreText.style.display = "none";
+  } else {
+    dots.style.display = "none";
+    btnText.innerHTML = "Read less";
+    moreText.style.display = "inline";
+  }
+}
+
+
+  </script>
+
+{% endblock %}

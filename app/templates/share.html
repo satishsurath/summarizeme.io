@@ -1,0 +1,17 @@
+{% extends "base-share.html" %}
+{% block content %}
+<details class="left-align"><summary>Suggested Title:</summary></details>
+<h2 class="left-align"> {{ summary_page_title }}</h2>
+<hr>   
+<span style="line-height: 2em;" class="left-align">
+<b>Public Link:</b> <a href="{{ short_url }}" target="_blank" style="text-decoration: none;">{{ short_url }}</a>  
+</span>
+<hr>
+<div class="left-align">
+    <p style="line-height: 2em;" class="left-align">
+        {% for para_summary in openAI_summary %}
+            {{para_summary}}<br>
+        {% endfor %}
+    </p>
+</div>
+{% endblock %}

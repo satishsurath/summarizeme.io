@@ -1,0 +1,10 @@
+- Entrepreneurs face a choice of paths when starting a business, with each path involving decisions regarding customers, technology, identity, and competition.
+- The choice of path will affect the overall entrepreneurial strategy of the business.
+- IP strategy involves investing in control over underlying innovation and working collaboratively with incumbent firms to develop transferable innovations that create value for end customers.
+- Disruption strategy prioritizes execution and flexibility over control and involves engaging industry incumbents in direct competition to render their business models obsolete.
+- Value-chain strategy creates value through cooperation with incumbents and positions the startup as a key broker in an established value chain.
+- Pursuing an architectural strategy involves developing a new value chain in the industry and investing in control over core ideas while competing with established firms.
+- Michael Bloomberg's trademark computer terminal is an example of this strategy, which leveraged its desktop presence to expand into secure messaging services and financial news aggregation.
+- The "test two, choose one" tool helps entrepreneurs develop two fully fleshed-out models before choosing which strategic alternative to commit to.
+- Entrepreneurial strategy challenges the notion of an "optimal" customer, technology, competitive market, or founding team identity, encouraging founders to make active choices concerning what capabilities to build and how to position their venture within a value chain.
+- Making big choices up front without properly considering the alternatives can be difficult, if not impossible, to unwind.

@@ -1,0 +1,244 @@
+approach  and  way  of  thinking  that  will  help  them  get  started  in  a  new  field  or 
+
+domain.  
+
+This  chapter  sets  the  scene  for  the  choices  that  will  be  explored  in  detail 
+
+throughout  the  rest  of  this  book.  Then,  it  will  help  you  understand  why  the 
+
+challenge  of  entrepreneurial  choice  is  difficult  and  unique,  and  also  give  you  a 
+
+working framework that you can use to make them.  
+
+Forming a core idea: identifying what you can choose 
+
+In Chapter 3, we already saw that entrepreneurs have certain characteristics 
+
+that are part of their identity and skill set. They have a passion for particular values 
+
+and  they  have  skills  that  may  give  them  an  unfair  advantage.  But  every 
+
+entrepreneur  must  have  a  core  idea.  A  venture’s  core  idea  is  the  fundamental 
+
+entrepreneurial opportunity and insight that the venture will be built on. The 
+
+core idea is something that is hard to come by and even harder to move away from. 
+
+Indeed, in many respects, if you change your core idea, you are really founding an 
+
+entirely new venture (See Box: If you change your idea, you have a new venture).  
+
+Along with the entrepreneur themself, it is the thing that will not change as the 
+
+venture evolves, and importantly, it gives the entrepreneur insight into the choices 
+
+they will have to make as they form their venture. In fact, the best way to identify 
+
+those choices is to know and be able to state very clearly what the core idea of 
+
+the venture is.  
+
+If you change your idea, you have a new venture 
+
+While entrepreneurs cannot really change their passion or their unfair advantage, ideas can 
+
+come and go. For each core idea, there are many possible strategies and entrepreneurial choice is about 
+
+selecting between them. But some ventures form and their core idea changes. Here is a case in point. 
+
+Before  Instagram,  the  big startup  for  photo  sharing  was Flickr.  When  they  started  in  2002, 
+
+Flickr’s  founders  had  another  idea.  For  Caterina  Fake  and  Stewart  Butterfield,  their  desire  was  to 
+
+create a social game that drove interactions between people. A year later, their project called “Game 
+
+Neverending” looked like it would never start. They were running out of money and the game was 
+
+not even developed yet. What they had, however, was a user-interface that allowed people to drag 
+
+game objects around. They then had the inspiration that user-interface could be a great way of sharing 
+
+ 
+photos instead. They could deploy Flickr quickly and thanks to a loan from the Canadian government, 
+
+they had enough runway left. 
+
+Flickr involved a fundamentally different idea than Game Neverending. Fake and Butterfield 
+
+were very lucky that some of the development they had from doing one became inspiration for the 
+
+other. So, while legally this all looked like the same company, conceptually it was a new and distinct 
+
+venture. That new venture would prove to be lucrative with with Flickr selling to Yahoo in 2005 for 
+
+$25 million. 
+
+Butterfield went on to try his hand at a gaming startup again in 2009 with a Vancouver based-
+
+startup, Glitch. It failed but the founders noticed that an internal tool they had developed to allow 
+
+better communication was a potentially powerful replacement for email. They chose to develop that 
+
+instead and launched the tool as Slack in 2015. In 2019, Slack went public with a value in excess of $15 
+
+billion and, in 2020, sold to Salesforce for $27 billion. Once again, one idea had evolved, almost by 
+
+accident, into another. 
+
+The examples of both Flickr and Slack show what happens when a venture starts in one place 
+
+and  then  morphs  into  something  different.  What  is  striking  and  perhaps  unusual  is  how  far  the 
+
+venture’s idea moved from its original. In reality, for most ventures, their core idea is something that 
+
+is  fixed  and  does  not  change  even  as  the  venture  itself  might  evolve  to  look  like  something  very 
+
+different. Regardless, when framing all of the options available for a venture, it is useful to identify 
+
+the core idea, first, as it provides a foundation upon which the venture will be built.  
+
+To  understand  this  better,  let’s  consider  the  way  many  entrepreneurs 
+
+describe their venture by relating it to an already successful concept. For example, 
+
+an  entrepreneur  may  claim  that  what  they  are  doing  is,  say,  “Uber  for  dog 
+
+grooming.” This is a useful and efficient means of communication. With those four 
+
+words, someone can readily understand that this venture is likely some form of 
+
+mobile service that brings dog groomers to dog owners, on-demand. However, no 
+
+matter how useful these devices of communicating by analogy are, there is a trap 
+
+involved in thinking this way at the outset; it does not show the many choices and 
+
+entrepreneur  will  need  to  make  at  the  outset.  As  we  will  see,  below,  a  good 
+
+statement of a core idea should omit references to the venture’s initial customer 
+
+(dog  owners),  technology  (mobile  applications),  organization  (network  of 
+
+groomers) and competition (traditional grooming shops). Instead, it should focus 
+
+solely on the identified opportunity. 
+
+ 
+Continuing  on  with  our  dog  grooming  entrepreneur,  let’s  step  back  for  a 
+
+moment to try and understand what the core idea might be. At present, most dog 
+
+grooming is conducted with dog owners bringing their dogs to be groomed by a 
+
+professional. There are some services that involve mobile dog grooming stations 
+
+that  are  booked  in  advance.  This  takes  planning.  Our  intrepid  entrepreneur, 
+
+themself a dog owner, realized that both of these current services did not serve a 
+
+specific type of problem well—what happens if a dog needs immediate grooming 
+
+attention? For instance, Fido may have wallowed around in the mud and muck 
+
+and is in such a state that you can’t just hose him down (especially since you have 
+
+visitors coming over soon). You don’t want to take your dog to a groomer as this 
+
+will likely spread the dirt throughout your car. You can’t wait until another slot 
+
+for a mobile dog groomer comes around. In other words, an entrepreneur might 
+
+come to realize there is some value in an on-demand solution and look for a way 
+
+to solve it. 
+
+Now one way you could imagine solving this problem for dog owners is to 
+
+have  dog  groomers  available  that  could  be  called  out  to  people’s  homes.  This 
+
+would involve a logistical challenge but it would be the job of the venture to solve 
+
+that.  However,  with  some more  thought, the  entrepreneur  might  come up  with 
+
+other ways to solve the problem. Another way would be to transport the dirty dog 
+
+to  dog  groomers  so  that  the  dog  owner  does  not  have  to  use  their  own  car.  Or 
+
+perhaps the solution is to sell people some solution to allow them to transport dirty 
+
+dogs in their own cars. In the end, one realizes there are numerous options and 
+
+each no doubt has its own advantages and disadvantages. The point is that it is 
+
+not  necessarily  obvious  that  the  only  solution  is  something  like  Uber.  There  are 
+
+other  options  and  before  embarking  on  any  one  of  them, it  is  important  that  an 
+
+entrepreneur explore them.  
+
+In this particular situation, a well-formed core idea would not be “Uber for 
+
+dog groomers” but instead a venture better described as “solving the problem of 
+
+how  to  deal  with  a  dirty  animal  right  away.”  (See  BOX:  Core  ideas  for  famous 
+
+startups). The key is to state the core idea for a venture independent of key choices you will 
+
+make as you build your business idea. 
+
+For example, important choices in this venture will include: 
+
+•  who the targeted set of customers are (notice that the idea stated here 
+
+does not mention dogs but animals in general),  
+
+•  the technology that brings them there (there is no mention of an app 
+
+on a mobile phone),  
+
+•  who does what (there is no mention of who grooms the animal); and  
+
+•  who competitors are.  
+
+These types of choices form the game plan of a venture and can be readily changed 
+
+while the core idea largely stays the same. In fact, entrepreneurs face broad areas 
+
+or  domains  of  choice  involving  customers,  technology,  organization,  and 
+
+competition. In the following chapters, we will examine these further. But before 
+
+we get to that, it is important to consider why choices like these are important and 
+
+the process by which those choices can be arrived at. 
+
+Core Ideas for Famous Startups 
+
+A core idea of a venture is a statement of their entrepreneurial opportunity without any 
+reference  to  particular  choices. Here  are some  examples  of  core  ideas  that we  have  derived for 
+famous ventures: 
+
+•  Amazon: use the Internet to order and deliver goods directly to consumers 
+
+•  Google: use the Internet to organize the world’s information 
+
+•  Uber: use mobile technology to easily match riders with rides 
+
+•  Spanx: use new materials for clothing shape and comfort 
+
+•  Flickr: allow people to store and share photos over the Internet 
+
+•  Slack: provide a means for members of an organization to interact with one another 
+
+•  Twitter: allow sharing content quickly and easily 
+
+•  Dolby:  use  advanced  sound  algorithms  to  improve  sound  recording  playback 
+
+quality 
+
+In  each  case,  what  the  core  idea  describes  is  what  the  venture  is  doing  and  what  the  baseline 
+technology is that is spurring the idea.  
+
+ 
+ 
+

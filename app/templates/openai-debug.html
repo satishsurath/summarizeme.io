@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>openAI-debug</h1>
+    <form action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.openAI_debug_form_key.label }}<br>
+            {{ form.openAI_debug_form_key(value=openai_key,class_='form-control') }}<br>
+
+            {% for error in form.openAI_debug_form_key.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.openAI_debug_form_prompt.label }}<br>
+            <small><em>{{ form.openAI_debug_form_prompt(cols=50, rows=10, class_='form-control', placeholder='Enter prompt here...', onkeyup="document.getElementById('charNum').innerHTML = this.value.length") }}</em></small><br>
+            <span id="charNum">0</span> characters entered.
+            {% for error in form.openAI_debug_form_prompt.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit() }}</p>
+        {% if openAI_summary %}
+            <div class="left-align">
+                <details>
+                    <summary><b>Prompt:</b></summary>
+                    <p>
+                        {{ text2summarize|nl2br|safe }}<br>
+                    </p>
+                </details>       
+            <h2>Summary:</h2>
+            <p style="white-space: pre-wrap;">{{ just_summary|nl2br|safe }}</p>                     
+            <h2>JSON:</h2>
+            <pre style="white-space: pre-wrap;" class="prettyprint">{{ openAI_summary|nl2br|safe }}</pre>
+            </div>
+        {% endif %}
+    </form>
+{% endblock %}
