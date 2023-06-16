@@ -1,13 +1,12 @@
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
-ca_cert_path = os.path.join(basedir, 'DigiCertGlobalRootG2.crt.pem')
 
 class Config(object):
     # Configure secret key
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
     # Configure database
     #SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.sqlite3')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') + "?ssl_ca=" + ca_cert_path
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
