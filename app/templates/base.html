@@ -211,7 +211,6 @@ function applyTheme() {
                 <li class="nav-links"> <a href="{{ url_for('summarizeURL') }}" alt="SummarizeMe.io (plus) - Webpage Summarization" aria-label="SummarizeMe.io - Webpage Summarization">URL</a></li>
                 <li class="nav-links"> <a href="{{ url_for('summarizeYouTube') }}" alt="SummarizeMe.io (plus) - YouTube Summarization" aria-label="SummarizeMe.io - YouTube Summarization">YouTube</a></li>
                 <li class="nav-links"> <a href="{{ url_for('summarizePDF') }}" alt="SummarizeMe.io (plus) - PDF Summarization" aria-label="SummarizeMe.io - PDF Summarization">PDF</a></li>
-                <li class="nav-links"> <a href="https://summarizeme.io" alt="SummarizeMe.io - Free" aria-label="SummarizeMe.io - Free">SummarizeMe.io - Free"</a></li>
                 <li class="nav-links"> <a href="{{ url_for('logs') }}">Logs</a></li> 
                 {% if current_user.is_authenticated %}
                   <li class="nav-links"> <a href="{{ url_for('openAI_debug') }}">OpenAI Debug</a></li> 
@@ -229,6 +228,7 @@ function applyTheme() {
                 </div>
               </div>
             </li>
+            <li class="nav-links"> <a href="https://summarizeme.io" alt="SummarizeMe.io(Free)" aria-label="SummarizeMe.io - Free">SummarizeMe.io(Free)</a></li>
             </ul>
             </nav>
 

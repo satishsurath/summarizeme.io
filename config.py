@@ -35,7 +35,7 @@ class Config(object):
     SESSION_PERMANENT = False
     
     # Configure Environment
-    SUMMARIZEME_ENV = os.environ.get('SUMMARIZEME_ENV') or 'Plus (Beta Version)'
+    SUMMARIZEME_ENV = os.environ.get('SUMMARIZEME_ENV') or '(Beta Version) SummarizeMe.io+'
         #Toggle to Show / Hide the Banner
     FLAG_SUMMARIZEME_ENV = os.environ.get('FLAG_SUMMARIZEME_ENV') or True
 
