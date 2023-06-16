@@ -18,4 +18,4 @@ WTForms==3.0.1
 google-api-python-client
 webvtt-py
 youtube-transcript-api
-mysql-connector-python
+mysql-connector
