@@ -5,6 +5,7 @@ import trafilatura
 import tiktoken
 import nltk
 import time
+import random
 import hashlib
 from nltk.tokenize import sent_tokenize
 from app import app, db, login_manager, linkedin_bp
@@ -915,34 +916,99 @@ def openAI_summarize_debug(form_openai_key, form_prompt):
     print(json.dumps(response, indent=4)) 
     return response
 
+# Define a retry decorator with exponential backoff
+def retry_with_exponential_backoff(func):
+    def wrapper(*args, **kwargs):
+        max_retries = 5
+        retry_delay = 1  # Initial delay in seconds
+        for _ in range(max_retries):
+            try:
+                return func(*args, **kwargs)
+            except openai.error.RateLimitError as e:
+                print("Rate limit exceeded. Retrying after delay...")
+                time.sleep(retry_delay)
+                # Increase the delay for the next retry with some random jitter
+                retry_delay *= 2 * random.uniform(0.8, 1.2)
+        # If max_retries exceeded, raise an exception
+        raise Exception("API rate limit exceeded even after retries.")
+    return wrapper
+
+# Apply the retry decorator to the original function
+@retry_with_exponential_backoff
 # Functions to call the OpenAI API
 def openAI_summarize_chunk(form_prompt):
-    global_prompt = "Summarize the below text into a few short bullet points in english. Treat everything below this sentence as text to be summarized: \n\n"
+    # This prompt is being used locally, so no need to declare it as global
+    global_prompt = "Summarize the below text into a few short bullet points in English. Treat everything below this sentence as text to be summarized: \n\n"
+    
+    # Protect against empty or whitespace-only input
+    if not form_prompt or form_prompt.isspace():
+        return None, None, None, None
+    
     # Count tokens in the form_prompt
     token_count = num_tokens_from_string(form_prompt)
     # max_tokens = 3500 #original
     max_tokens = 2400
     is_trimmed = False
+    
     # Trim the form_prompt if the token count exceeds the model's maximum limit
     if token_count > max_tokens:
-        #print("prompt is too long, trimming...")
         form_prompt_chunks = []
         chunks = [sentence for sentence in sent_tokenize(form_prompt)]
         temp_prompt = ''
+        
         for sentence in chunks:
             if num_tokens_from_string(temp_prompt + sentence) < max_tokens:
                 temp_prompt += sentence
             else:
                 form_prompt_chunks.append(temp_prompt.strip())
                 temp_prompt = sentence
+                # Break the loop if the sentence still exceeds max_tokens after trimming
+                if num_tokens_from_string(temp_prompt) > max_tokens:
+                    break
+        
         if temp_prompt != '':
             form_prompt_chunks.append(temp_prompt.strip())
+        
         is_trimmed = True
         completed_messages = []
         openai_responses = []
         total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        
         for chunk in form_prompt_chunks:
             message = {"role": "user", "content": global_prompt + chunk}
+            # Added try-except block for API call
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo-16k",
+                    messages=[message],
+                    temperature=0.7,
+                    max_tokens=500,
+                    top_p=1.0,
+                    frequency_penalty=0.0,
+                    presence_penalty=1
+                )
+            except Exception as e:
+                print(f"API call failed with error: {e}")
+                return None, None, None, None
+                
+            # Check if 'choices' and 'message' keys exist in the response
+            if 'choices' in response and 'message' in response['choices'][0]:
+                completed_messages.extend(response["choices"][0]['message']['content'].split('\n')[:-1])
+            openai_responses.append(response)
+            for key in total_usage:
+                total_usage[key] += response["usage"][key]
+                
+        completed_messages.append(response["choices"][0]['message']['content'].split('\n')[-1])
+        openai_response = openai_responses[-1].copy()
+        openai_response["choices"] = [{"message": {"content": '\n'.join(completed_messages)}}]
+        openai_response["usage"] = total_usage
+        number_of_chunks = len(form_prompt_chunks)
+        return openai_response, is_trimmed, form_prompt, number_of_chunks
+    else:
+        message = {"role": "user", "content": global_prompt + form_prompt}
+        
+        # Added try-except block for API call
+        try:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo-16k",
                 messages=[message],
@@ -952,31 +1018,13 @@ def openAI_summarize_chunk(form_prompt):
                 frequency_penalty=0.0,
                 presence_penalty=1
             )
-            completed_messages.extend(response["choices"][0]['message']['content'].split('\n')[:-1])
-            openai_responses.append(response)
-            for key in total_usage:
-                total_usage[key] += response["usage"][key]
-        completed_messages.append(response["choices"][0]['message']['content'].split('\n')[-1])
-        openai_response = openai_responses[-1].copy()
-        openai_response["choices"] = [{"message": {"content": '\n'.join(completed_messages)}}]
-        openai_response["usage"] = total_usage
-        global_number_of_chunks = len(form_prompt_chunks)
-        return openai_response, is_trimmed, form_prompt, global_number_of_chunks
-    else:
-        # The prompt is not too long (its within the max token limit), so we can just call the API
-        # print("prompt is not trimmed")
-        message = {"role": "user", "content": global_prompt + form_prompt}
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-16k",
-            messages=[message],
-            temperature=0.7,
-            max_tokens=500,
-            top_p=1.0,
-            frequency_penalty=0.0,
-            presence_penalty=1
-        )
-        global_number_of_chunks = 1
-        return response, is_trimmed, form_prompt, global_number_of_chunks
+        except Exception as e:
+            print(f"API call failed with error: {e}")
+            return None, None, None, None
+        
+        number_of_chunks = 1
+        return response, is_trimmed, form_prompt, number_of_chunks
+
 
 #function that takes the text2summarize chunks it to make sure its within the max token limit and then openAI API to with a custom prompt
 def openAI_page_title(form_prompt):
