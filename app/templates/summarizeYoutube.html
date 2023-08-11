@@ -53,11 +53,13 @@
                 </details>    
             <hr>
             <h2>Summary:</h2>
+            <div id="summary-content">
             <p>
                 {% for para_summary in openAI_summary %}
                     {{para_summary}}<br>
                 {% endfor %}
             </p>
+            </div>
             <hr>
             {% include 'reuse-copy-share.html' %}
             <hr>
