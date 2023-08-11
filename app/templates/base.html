@@ -158,6 +158,17 @@
 
     </style>
     <script>
+function copySummaryToClipboard() {
+    const textarea = document.createElement('textarea');
+    textarea.textContent = document.querySelector('#summary-content').textContent;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert('Summary copied to clipboard!');
+}
+
+
 function setTheme(theme) {
     const root = document.documentElement;
     const body = document.body;
@@ -206,11 +217,11 @@ function applyTheme() {
           <div class="item">
             <nav class="navbar">
               <ul>
-                <li> <a href="{{ url_for('index') }}"><img src="/static/SummarizeMe_transparent_logov4.png" alt="SummarizeMe.io (plus) Logo - AI-Powered Text Summarization" aria-label="SummarizeMe.io Homepage" height="45px" width="162px"></a></li>
-                <li class="nav-links"> <a href="{{ url_for('summarizeText') }}" alt="SummarizeMe.io (plus) - Text Summarization" aria-label="SummarizeMe.io - Text Summarization">Text</a></li> 
-                <li class="nav-links"> <a href="{{ url_for('summarizeURL') }}" alt="SummarizeMe.io (plus) - Webpage Summarization" aria-label="SummarizeMe.io - Webpage Summarization">URL</a></li>
-                <li class="nav-links"> <a href="{{ url_for('summarizeYouTube') }}" alt="SummarizeMe.io (plus) - YouTube Summarization" aria-label="SummarizeMe.io - YouTube Summarization">YouTube</a></li>
-                <li class="nav-links"> <a href="{{ url_for('summarizePDF') }}" alt="SummarizeMe.io (plus) - PDF Summarization" aria-label="SummarizeMe.io - PDF Summarization">PDF</a></li>
+                <li> <a href="{{ url_for('index') }}"><img src="/static/SummarizeMe_transparent_logov4.png" alt="SummarizeMe.io Logo - AI-Powered Text Summarization" aria-label="SummarizeMe.io Homepage" height="45px" width="162px"></a></li>
+                <li class="nav-links"> <a href="{{ url_for('summarizeText') }}" alt="SummarizeMe.io - Text Summarization" aria-label="SummarizeMe.io - Text Summarization">Text</a></li> 
+                <li class="nav-links"> <a href="{{ url_for('summarizeURL') }}" alt="SummarizeMe.io - Webpage Summarization" aria-label="SummarizeMe.io - Webpage Summarization">URL</a></li>
+                <li class="nav-links"> <a href="{{ url_for('summarizeYouTube') }}" alt="SummarizeMe.io - YouTube Summarization" aria-label="SummarizeMe.io - YouTube Summarization">YouTube</a></li>
+                <li class="nav-links"> <a href="{{ url_for('summarizePDF') }}" alt="SummarizeMe.io - PDF Summarization" aria-label="SummarizeMe.io - PDF Summarization">PDF</a></li>
                 <li class="nav-links"> <a href="{{ url_for('logs') }}">Logs</a></li> 
                 {% if current_user.is_authenticated %}
                   <li class="nav-links"> <a href="{{ url_for('openAI_debug') }}">OpenAI Debug</a></li> 
@@ -228,7 +239,7 @@ function applyTheme() {
                 </div>
               </div>
             </li>
-            <li class="nav-links"> <a href="https://summarizeme.io" alt="SummarizeMe.io(Free)" aria-label="SummarizeMe.io - Free">SummarizeMe.io(Free)</a></li>
+            <li class="nav-links"> <a href="https://plus-beta.summarizeme.io" alt="SummarizeMe.io(Plus)" aria-label="SummarizeMe.io(Plus)"><span style="color:red;">New:</span> SummarizeMe.io<span style="color:red;font-size:2em;">+</span></a></li>
             </ul>
             </nav>
 
