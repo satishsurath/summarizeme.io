@@ -42,17 +42,7 @@
             <div class="left-align">
                     <details><summary>Suggested Title:</summary></details>
                 <h2> {{ summary_page_title }}</h2>
-                <hr>
-                <details>
-                    <summary><b>Original Extracted Text:</b></summary>
-                    <div id="summary-content">
-                    <p>
-                        {% for para_text2summarize in text2summarize %}
-                            {{para_text2summarize}}
-                        {% endfor %}
-                    </p>  
-                </div>
-                </details>    
+               
             <hr>          
             
             <h2>Summary:</h2>
@@ -86,6 +76,7 @@
                 <pre style="white-space: pre-wrap;" class="prettyprint">{{ openAI_json|nl2br|safe }}</pre>
             </details>            
             </div>
+            {% include 'reuse-original-text.html' %} 
         {% endif %}
 
      
