@@ -933,6 +933,7 @@ def retry_with_exponential_backoff(func):
         raise Exception("API rate limit exceeded even after retries.")
     return wrapper
 
+
 # Apply the retry decorator to the original function
 @retry_with_exponential_backoff
 # Functions to call the OpenAI API
@@ -944,6 +945,27 @@ def openAI_summarize_chunk(form_prompt):
     if not form_prompt or form_prompt.isspace():
         return None, None, None, None
     
+    # Step 1: Call the Moderation Endpoint First
+    try:
+        moderation_response = openai.Moderation.create(input=form_prompt)
+        print(moderation_response)
+    except Exception as e:
+        print(f"Moderation API call failed with error: {e}")
+        return None, None, None, None
+    
+    # Step 2: Check the Moderation Result
+    if moderation_response["results"][0]["flagged"]:
+        # Construct a similar response structure indicating content violation
+        response = {
+            "choices": [{
+                "message": {
+                    "content": "Content does not comply with OpenAI's usage policies"
+                }
+            }]
+        }
+        return response, None, form_prompt, None
+
+    # Step 3: Proceed as Normal if Content is Not Flagged   
     # Count tokens in the form_prompt
     token_count = num_tokens_from_string(form_prompt)
     # max_tokens = 3500 #original
