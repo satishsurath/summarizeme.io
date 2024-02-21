@@ -10,6 +10,7 @@ class Entry_Post(db.Model):
     text2summarize = db.Column(db.Text)
     text2summarize_hash = db.Column(db.String(64), unique=True)
     openAIsummary = db.Column(db.Text)
+    openAIkeyInsights = db.Column(db.Text)
     openAItitle = db.Column(db.String(1024))
 
     def __repr__(self):
