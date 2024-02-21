@@ -6,7 +6,12 @@ class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
     # Configure database
     #SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.sqlite3')
+    # Configure SQLAlchemy options
+    #SQLALCHEMY_DATABASE_URI = os.environ.get('AZURE_POSTGRESQL_CONNECTIONSTRING') or \
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
+    #or \
+    #    'sqlite:///' + os.path.join(basedir, 'app.db')
+
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

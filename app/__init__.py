@@ -10,6 +10,9 @@ from flask_session import Session
 from flask_login import LoginManager
 from flask_dance.contrib.linkedin import make_linkedin_blueprint, linkedin
 
+from dotenv import load_dotenv
+load_dotenv()
+
 app = Flask(__name__)
 app.config.from_object(Config)
 db = SQLAlchemy(app)
