@@ -300,10 +300,12 @@ def summarizeYouTube():
             transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
             transcript_text = ' '.join([item['text'] for item in transcript_list])
             #print("2: transcript_text:" + transcript_text)
-        except:
+        except Exception as e:
             flash("Unable to download transcript from the provided YouTube video. Please try another video.")
             # rollbar.report_message('Unable to download transcript from the provided YouTube video. Please try another video.', 'error')
             # rollbar.report_exc_info()
+            app.logger.error('Unable to download transcript from the provided YouTube video. Please try another video.')
+            app.logger.error(e)
             return redirect(url_for('summarizeYouTube'))
 
         # Perform the summarization and other necessary tasks similar to the summarizeURL function
@@ -420,6 +422,9 @@ def summarizeURL():
       if downloaded is None:
         
         flash("Unable to download content from the provided URL. Please try another URL.")
+        app.logger.error("Unable to download content from the provided URL. Please try another URL.")
+        # include form.summarize.data
+        app.logger.error(form.summarize.data)
         return redirect(url_for('summarizeURL'))
       
       session['url'] = form.summarize.data
@@ -432,6 +437,9 @@ def summarizeURL():
       else:
         
         flash("Unable to extract content from the provided URL. Please try another URL.")
+        app.logger.error("Unable to extract content from the provided URL. Please try another URL.")
+        # include form.summarize.data
+        app.logger.error(form.summarize.data)
         return redirect(url_for('summarizeURL'))
       #check if the hash exists in the Local Database, before calling the OpenAI API
       if check_if_hash_exists(text2summarize_hash):
@@ -478,6 +486,9 @@ def summarizeURL():
         #print("summarizeURL - 15")
         #If the text2summarize is None, then we have an Error. Let the user know
         flash("Unable to extract content from the provided URL. Please try another URL.")
+        app.logger.error("Unable to extract content from the provided URL. Please try another URL.")
+        # include form.summarize.data
+        app.logger.error(form.summarize.data)
         return redirect(url_for('summarizeURL'))
       
       #Check if the text has already been written to Database or if it exists in the database         
@@ -575,6 +586,7 @@ def summarizePDF():
               # Protect against empty or whitespace-only input
               if len(text2summarize) <= 0 or text2summarize.isspace():
                   flash("Unable to extract content from the provided PDF. Please try another PDF.")
+                  app.logger.error("Unable to extract content from the provided PDF. Please try another PDF.")
                   clear_session()
                   print("summarizePDF - 4.2 - text2summarize is None ")
                   return redirect(url_for('keyInsightsPDF'))
@@ -635,7 +647,8 @@ def summarizePDF():
             if text2summarize is not None:
               text2summarize_hash = hashlib.sha256(text2summarize.encode('utf-8')).hexdigest()
             else:
-                flash("Unable to extract content from the provided URL. Please try another URL.")
+                flash("Unable to extract content from the provided PDF. Please try another URL.")
+                app.logger.error("Unable to extract content from the provided PDF. Please try another URL.")
                 return redirect(url_for('summarizePDF'))           
             # If we calculated the summary with OpenAI API, we need to write it to the database
             if not check_if_hash_exists(text2summarize_hash):
@@ -797,6 +810,7 @@ def keyInsightsText():
         else:
             #If the text2summarize is None, then we have an Error. Let the user know
             flash("Unable to extract content from the provided Text. Please try Again")
+            app.logger.error("Unable to extract content from the provided Text. Please try Again")
             return redirect(url_for('keyInsightsText'))
         #Check if the text has already been written to Database or if it exists in the database
         if not get_key_insights_from_hash(text2summarize_hash) and not session.get('content_written', False):
@@ -871,15 +885,19 @@ def keyInsightsYouTube():
         #print("1: video_id:" + video_id)
         if video_id is None:
             flash("Unable to extract video ID from the provided URL. Please try another URL.")
+            app.logger.error("Unable to extract video ID from the provided URL. Please try another URL.") 
+            # form.youtube_url.data
+            app.logger.error(form.youtube_url.data)
             return redirect(url_for('keyInsightsYouTube'))
         try:
             transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
             transcript_text = ' '.join([item['text'] for item in transcript_list])
             #print("2: transcript_text:" + transcript_text)
-        except:
+        except Exception as e:
             flash("Unable to download transcript from the provided YouTube video. Please try another video.")
             # rollbar.report_message('Unable to download transcript from the provided YouTube video. Please try another video.', 'error')
             # rollbar.report_exc_info()
+            app.logger.error(f"Unable to download transcript from the provided YouTube video. Please try another video. Error: {e}")
             return redirect(url_for('keyInsightsYouTube'))
 
         # Perform the summarization and other necessary tasks similar to the summarizeURL function
@@ -993,6 +1011,9 @@ def keyInsightsURL():
       if downloaded is None:
         
         flash("Unable to download content from the provided URL. Please try another URL.")
+        app.logger.error("Unable to download content from the provided URL. Please try another URL.")
+        # include form.summarize.data
+        app.logger.error(form.summarize.data)
         return redirect(url_for('keyInsightsURL'))
       
       session['url'] = form.summarize.data
@@ -1005,6 +1026,10 @@ def keyInsightsURL():
       else:
         
         flash("Unable to extract content from the provided URL. Please try another URL.")
+        app.logger.error("Unable to extract content from the provided URL. Please try another URL.")
+        # include form.summarize.data
+        app.logger.error(form.summarize.data)
+
         return redirect(url_for('keyInsightsURL'))
       #check if the hash exists in the Local Database, before calling the OpenAI API
       if get_key_insights_from_hash(text2summarize_hash):
@@ -1051,6 +1076,9 @@ def keyInsightsURL():
         #print("summarizeURL - 15")
         #If the text2summarize is None, then we have an Error. Let the user know
         flash("Unable to extract content from the provided URL. Please try another URL.")
+        app.logger.error("Unable to extract content from the provided URL. Please try another URL")
+        app.logger.error(form.summarize.data)
+
         return redirect(url_for('summarizeURL'))
       
       #Check if the text has already been written to Database or if it exists in the database         
@@ -1149,6 +1177,7 @@ def keyInsightsPDF():
               # Check if the PDF was empty
               if len(text2summarize) <= 0 or text2summarize.isspace():
                   flash("Unable to extract content from the provided PDF. Please try another PDF.")
+                  app.logger.error("Unable to extract content from the provided PDF. Please try another PDF.")
                   clear_session()
                   print("summarizePDF - 4.2 - text2summarize is None ")
                   return redirect(url_for('keyInsightsPDF'))
@@ -1204,6 +1233,7 @@ def keyInsightsPDF():
               text2summarize_hash = hashlib.sha256(text2summarize.encode('utf-8')).hexdigest()
             else:
                 flash("Unable to extract content from the provided URL. Please try another URL.")
+                app.logger.error("Unable to extract content from the provided URL. Please try another URL")
                 return redirect(url_for('keyInsightsPDF'))           
             # If we calculated the summary with OpenAI API, we need to write it to the database
             if not get_key_insights_from_hash(text2summarize_hash) and not session.get('content_written', False):
@@ -1633,6 +1663,7 @@ def retry_with_exponential_backoff(func):
             except (openai.error.ServiceUnavailableError) as e:
                 error_type = "Rate limit exceeded" if isinstance(e, openai.error.RateLimitError) else "Service unavailable"
                 print(f"{error_type}. Retrying after delay... (Attempt {attempt + 1} of {max_retries})")
+                app.logger.error(f"{error_type}. Retrying after delay... (Attempt {attempt + 1} of {max_retries})")
                 # rollbar.report_message(f'{error_type}. Retrying after delay... {str(e)}', 'warning')
                 # rollbar.report_exc_info()
                 time.sleep(retry_delay)
@@ -1640,6 +1671,7 @@ def retry_with_exponential_backoff(func):
                 retry_delay *= 2 * random.uniform(0.8, 1.2)
             except (openai.error.RateLimitError) as e:
                 error_type = "Rate limit exceeded" if isinstance(e, openai.error.RateLimitError) else "Service unavailable"
+                app.logger.error(f"{error_type}. Retrying after delay... (Attempt {attempt + 1} of {max_retries})")
                 print(f"{error_type}. Retrying after delay... (Attempt {attempt + 1} of {max_retries})")
                 # rollbar.report_message(f'{error_type}. Retrying after delay... {str(e)}', 'warning')
                 # rollbar.report_exc_info()
@@ -1649,12 +1681,14 @@ def retry_with_exponential_backoff(func):
             except openai.error.OpenAIError as e:
                 # Handle other OpenAI-specific errors
                 print(f"An OpenAI error occurred: {e}")
+                app.logger.error(f"An OpenAI error occurred: {e}")
                 # rollbar.report_message(f"An OpenAI error occurred: {e}", 'error')
                 # rollbar.report_exc_info()
                 break  # Break out of retry loop for non-retryable errors
             except Exception as e:
                 # Handle other unforeseen errors
                 print(f"An unexpected error occurred: {e}")
+                app.logger.error(f"An unexpected error occurred: {e}")
                 # rollbar.report_message(f"An unexpected error occurred: {e}", 'error')
                 # rollbar.report_exc_info()
                 break  # Break out of retry loop for non-retryable errors
@@ -1844,6 +1878,7 @@ def openAI_keyInsights_chunk(form_prompt):
     except Exception as e:
         print(f"Moderation API call failed with error: {e}")
         # rollbar.report_message(f"Moderation API call failed with error: {e}", 'error')
+        app.logger.error(f"Moderation API call failed with error: {e}")
         return None, None, None, None
     
     # Step 2: Check the Moderation Result
@@ -1903,6 +1938,7 @@ def openAI_keyInsights_chunk(form_prompt):
               if not partial_sentence:
                   print(f"Unable to split sentence further: {temp_prompt}")
                   # rollbar.report_message(f"Unable to split sentence further: {temp_prompt}", 'warning')
+                  app.logger.warning(f"Unable to split sentence further: {temp_prompt}")
                   break
               form_prompt_chunks.append(partial_sentence.strip())
               temp_prompt = ' '.join(words)
