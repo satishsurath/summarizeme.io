@@ -1,5 +1,7 @@
 from app import db
 from datetime import datetime
+from sqlalchemy.orm import Mapped
+
 
 class Entry_Post(db.Model):
     __tablename__ = 'entry_post'
@@ -38,3 +40,24 @@ class Entry_Posts_History(db.Model):
 
     def __repr__(self):
         return '<Entry_Posts_oAuthUsers {}>'.format(self.id)
+
+
+class LogEntry(db.Model):
+    """A class that represents a log entry.
+
+    Attributes
+    ----------
+    id: int
+        The unique log entry identifier
+    timestamp: datetime
+        The timestamp of the log entry
+    level: str
+        The log level (e.g., INFO, WARNING, ERROR)
+    message: str
+        The log message
+    """
+
+    id: Mapped[int] = db.Column(db.Integer, primary_key=True)
+    timestamp: Mapped[datetime] = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    level: Mapped[str] = db.Column(db.String(50))
+    message: Mapped[str] = db.Column(db.String(1000))

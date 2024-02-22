@@ -12,7 +12,7 @@ import rollbar
 from nltk.tokenize import sent_tokenize
 from app import app, db, login_manager, linkedin_bp
 from app.forms import SummarizeFromText, SummarizeFromURL, openAI_debug_form, UploadPDFForm, SummarizeFromYouTube
-from app.models import Entry_Post, oAuthUser, Entry_Posts_History
+from app.models import Entry_Post, oAuthUser, Entry_Posts_History, LogEntry
 from app.db_file_operations import write_json_to_file, write_content_to_file, read_from_file_json, read_from_file_content, check_folder_exists
 from app.db_file_operations import check_if_hash_exists, get_summary_from_hash, get_key_insights_from_hash, get_title_from_hash, write_entry_to_db, write_insights_to_db, delete_entry_from_db, get_entry_from_hash, write_user_to_db, check_if_user_exists, get_entry_by_hash, get_user_by_email, get_history_entry, add_history_entry 
 from app.utility_functions import num_tokens_from_string, avg_sentence_length, nl2br, preferred_locale_value, get_short_url, get_existing_short_url, extract_video_id 
@@ -33,6 +33,8 @@ from flask_dance.contrib.linkedin import linkedin
 from collections.abc import Sequence
 from youtube_transcript_api import YouTubeTranscriptApi
 
+from datetime import datetime, timedelta
+from flask_apscheduler import APScheduler # for scheduling jobs - such as log cleanup
 
 #--------------------- Rollbar for Logging ---------------------
 
@@ -1992,3 +1994,28 @@ def clear_session():
   session.pop('form_prompt_chunks', None)
   session.pop('form_prompt_chunk', None)
   session.pop('title_prompt', None)
+
+
+
+
+# -------------------- Log Cleanup Job and Scheduler --------------------
+
+scheduler = APScheduler()
+# Initialize APScheduler
+scheduler.init_app(app)
+scheduler.start()
+
+def delete_old_logs():
+    try:
+        threshold = datetime.utcnow() - timedelta(hours=24)
+        result = LogEntry.query.filter(LogEntry.timestamp < threshold).delete()
+        db.session.commit()
+        # Log the number of deleted log entries
+        app.logger.info(f"Deleted {result} old log entries.")
+    except Exception as e:
+        # Log any errors that occur during the cleanup process
+        app.logger.error(f"Error deleting old logs: {e}")
+
+
+scheduler.add_job(id='Delete Old Logs', func=delete_old_logs, trigger='interval', hours=1)
+

@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -61,6 +62,34 @@ class SessionDataFormatter(logging.Formatter):
         record.session_data = session
         record.user_agent = request.user_agent
         return super().format(record)
+
+
+
+class DatabaseLogHandler(logging.Handler):
+    def __init__(self, db, app):
+        super().__init__()
+        self.db = db
+        self.app = app  # Store the Flask app instance
+
+    def emit(self, record):
+        try:
+            with self.app.app_context():  # Push an application context
+                from app.models import LogEntry  # Import here to avoid circular import
+                log_entry = LogEntry(level=record.levelname, message=record.getMessage())
+                self.db.session.add(log_entry)
+                self.db.session.commit()
+        except Exception as e:
+            sys.stderr.write(f"ERROR: Failed to log message to database: {e}\n")
+
+
+# Initialize Logging
+app.logger.setLevel(logging.INFO)
+db_log_handler = DatabaseLogHandler(db, app)
+db_log_handler.setLevel(logging.INFO)
+app.logger.addHandler(db_log_handler)
+# Initialize Logging with Python interpreter path
+python_interpreter_path = sys.executable  # Path to the Python interpreter
+app.logger.info(f'FlaskApp startup - Python Interpreter: {python_interpreter_path}')
 
 
 # This is the logging configuration for the app
