@@ -566,66 +566,67 @@ def summarizePDF():
         if form.validate_on_submit():
             print("summarizePDF - 3")
             # Get the uploaded PDF file
-            pdf_file = form.pdf.data
+            pdf_files = form.pdf.data
             print("summarizePDF - 4")
             # Read the PDF contents
-            text2summarize = extract_text(BytesIO(pdf_file.read()))
-            app.logger.info("text2summarize:" + str(text2summarize))
-            # Protect against empty or whitespace-only input
-            if len(text2summarize) <= 0 or text2summarize.isspace():
-                flash("Unable to extract content from the provided PDF. Please try another PDF.")
-                clear_session()
-                print("summarizePDF - 4.2 - text2summarize is None ")
-                return redirect(url_for('keyInsightsPDF'))
-            # # Protect against empty or whitespace-only input
-            # Calculate the hash of the text2summarize                          
-            text2summarize_hash = hashlib.sha256(text2summarize.encode('utf-8')).hexdigest()
-            print("summarizePDF - 5")
-            # Save the PDF file to the uploads folder
-            filename = secure_filename(text2summarize_hash + pdf_file.filename)
-            session['pdf_filename'] = filename
-            print("summarizePDF - 5")
-            pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            for pdf_file in pdf_files:  # Iterate over each file
+              text2summarize = extract_text(BytesIO(pdf_file.read()))
+              app.logger.info("text2summarize:" + str(text2summarize))
+              # Protect against empty or whitespace-only input
+              if len(text2summarize) <= 0 or text2summarize.isspace():
+                  flash("Unable to extract content from the provided PDF. Please try another PDF.")
+                  clear_session()
+                  print("summarizePDF - 4.2 - text2summarize is None ")
+                  return redirect(url_for('keyInsightsPDF'))
+              # # Protect against empty or whitespace-only input
+              # Calculate the hash of the text2summarize                          
+              text2summarize_hash = hashlib.sha256(text2summarize.encode('utf-8')).hexdigest()
+              print("summarizePDF - 5")
+              # Save the PDF file to the uploads folder
+              filename = secure_filename(text2summarize_hash + pdf_file.filename)
+              session['pdf_filename'] = filename
+              print("summarizePDF - 5")
+              pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-            # Seek to the beginning of the file before saving, then save the file
-            pdf_file.seek(0)
-            # Check if folder exists:
-            if check_folder_exists(app.config['UPLOAD_FOLDER']):
-                pdf_file.save(pdf_path)
-                print("summarizePDF - 6")
-            # Check if the hash exists in the Local Database, before calling the OpenAI API
-            if check_if_hash_exists(text2summarize_hash):
-                print("summarizePDF - 7")
-                openAI_summary = get_summary_from_hash(text2summarize_hash)
-                openAI_summary_JSON = read_from_file_json(text2summarize_hash + ".json")
-                summary_page_title = get_title_from_hash(text2summarize_hash)
-                #Support for Legacy Database entries without title
-                if not summary_page_title:
-                  summary_page_title = openAI_page_title(openAI_summary)                
-                session['is_trimmed'] = False
-                session['form_prompt'] = text2summarize
-                session['number_of_chunks'] = "Retrieved from Database"
-            else:
-              try:
-                print("summarizePDF - 8")
-                openAI_summary_JSON, session['is_trimmed'], session['form_prompt'], session['number_of_chunks'] = openAI_summarize_chunk(text2summarize)
-                openAI_summary = openAI_summary_JSON["choices"][0]['message']['content']
-                summary_page_title = openAI_page_title(openAI_summary)
-                write_json_to_file(text2summarize_hash + ".json", openAI_summary_JSON)
-                if check_folder_exists(app.config['UPLOAD_CONTENT']):
-                  write_content_to_file(text2summarize_hash + ".txt", text2summarize)
-              except Exception as e:
-                flash("Unable to summarize the provided PDF. Please try another PDF.")
-                app.logger.error(f"Unable to summarize the provided PDF. Please try another PDF. Error: {e}")
-                # rollbar.report_message('Unable to summarize the provided PDF. Please try another PDF.', 'error')
-                clear_session()
-                return redirect(url_for('keyInsightsPDF'))
-            print("summarizePDF - 9")
-            session['openAI_summary_PDF'] = openAI_summary
-            session['openAI_summary_JSON_PDF'] = openAI_summary_JSON
-            session['text2summarize_PDF'] = text2summarize
-            session['summary_page_title'] = summary_page_title  
-            return redirect(url_for('summarizePDF'))
+              # Seek to the beginning of the file before saving, then save the file
+              pdf_file.seek(0)
+              # Check if folder exists:
+              if check_folder_exists(app.config['UPLOAD_FOLDER']):
+                  pdf_file.save(pdf_path)
+                  print("summarizePDF - 6")
+              # Check if the hash exists in the Local Database, before calling the OpenAI API
+              if check_if_hash_exists(text2summarize_hash):
+                  print("summarizePDF - 7")
+                  openAI_summary = get_summary_from_hash(text2summarize_hash)
+                  openAI_summary_JSON = read_from_file_json(text2summarize_hash + ".json")
+                  summary_page_title = get_title_from_hash(text2summarize_hash)
+                  #Support for Legacy Database entries without title
+                  if not summary_page_title:
+                    summary_page_title = openAI_page_title(openAI_summary)                
+                  session['is_trimmed'] = False
+                  session['form_prompt'] = text2summarize
+                  session['number_of_chunks'] = "Retrieved from Database"
+              else:
+                try:
+                  print("summarizePDF - 8")
+                  openAI_summary_JSON, session['is_trimmed'], session['form_prompt'], session['number_of_chunks'] = openAI_summarize_chunk(text2summarize)
+                  openAI_summary = openAI_summary_JSON["choices"][0]['message']['content']
+                  summary_page_title = openAI_page_title(openAI_summary)
+                  write_json_to_file(text2summarize_hash + ".json", openAI_summary_JSON)
+                  if check_folder_exists(app.config['UPLOAD_CONTENT']):
+                    write_content_to_file(text2summarize_hash + ".txt", text2summarize)
+                except Exception as e:
+                  flash("Unable to summarize the provided PDF. Please try another PDF.")
+                  app.logger.error(f"Unable to summarize the provided PDF. Please try another PDF. Error: {e}")
+                  # rollbar.report_message('Unable to summarize the provided PDF. Please try another PDF.', 'error')
+                  clear_session()
+                  return redirect(url_for('summarizePDF'))
+              print("summarizePDF - 9")
+              session['openAI_summary_PDF'] = openAI_summary
+              session['openAI_summary_JSON_PDF'] = openAI_summary_JSON
+              session['text2summarize_PDF'] = text2summarize
+              session['summary_page_title'] = summary_page_title  
+              return redirect(url_for('summarizePDF'))
 
         # Now that we have the summary, we can render the page
         if session.get('openAI_summary_PDF'):
@@ -1138,61 +1139,62 @@ def keyInsightsPDF():
         if form.validate_on_submit():
             print("summarizePDF - 3")
             # Get the uploaded PDF file
-            pdf_file = form.pdf.data
+            pdf_files = form.pdf.data
             print("summarizePDF - 4")
             # Read the PDF contents
-            text2summarize = extract_text(BytesIO(pdf_file.read()))
-            print(f"summarizePDF - 4.1 text2summarize: {text2summarize} ")
-            print(f"summarizePDF - 4.2 len(text2summarize): {len(text2summarize)} ")
-            # Check if the PDF was empty
-            if len(text2summarize) <= 0 or text2summarize.isspace():
-                flash("Unable to extract content from the provided PDF. Please try another PDF.")
-                clear_session()
-                print("summarizePDF - 4.2 - text2summarize is None ")
-                return redirect(url_for('keyInsightsPDF'))
-            text2summarize_hash = hashlib.sha256(text2summarize.encode('utf-8')).hexdigest()
-            print("summarizePDF - 5")
-            # Save the PDF file to the uploads folder
-            filename = secure_filename(text2summarize_hash + pdf_file.filename)
-            session['pdf_filename'] = filename
-            print("summarizePDF - 5")
-            pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            for pdf_file in pdf_files:  # Iterate over each file
+              text2summarize = extract_text(BytesIO(pdf_file.read()))
+              print(f"summarizePDF - 4.1 text2summarize: {text2summarize} ")
+              print(f"summarizePDF - 4.2 len(text2summarize): {len(text2summarize)} ")
+              # Check if the PDF was empty
+              if len(text2summarize) <= 0 or text2summarize.isspace():
+                  flash("Unable to extract content from the provided PDF. Please try another PDF.")
+                  clear_session()
+                  print("summarizePDF - 4.2 - text2summarize is None ")
+                  return redirect(url_for('keyInsightsPDF'))
+              text2summarize_hash = hashlib.sha256(text2summarize.encode('utf-8')).hexdigest()
+              print("summarizePDF - 5")
+              # Save the PDF file to the uploads folder
+              filename = secure_filename(text2summarize_hash + pdf_file.filename)
+              session['pdf_filename'] = filename
+              print("summarizePDF - 5")
+              pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-            # Seek to the beginning of the file before saving, then save the file
-            pdf_file.seek(0)
-            # Check if folder exists:
-            if check_folder_exists(app.config['UPLOAD_FOLDER']):
-                pdf_file.save(pdf_path)
-                print("summarizePDF - 6")
-            # Check if the hash exists in the Local Database, before calling the OpenAI API
-            if get_key_insights_from_hash(text2summarize_hash):
-                print("summarizePDF - 7")
-                openAI_summary = get_key_insights_from_hash(text2summarize_hash)
-                openAI_summary_JSON = read_from_file_json(text2summarize_hash + "_insights.json")
-                summary_page_title = get_title_from_hash(text2summarize_hash)
-                #Support for Legacy Database entries without title
-                if not summary_page_title:
-                  summary_page_title = openAI_page_title(openAI_summary)                
-                session['is_trimmed'] = False
-                session['form_prompt'] = text2summarize
-                session['number_of_chunks'] = "Retrieved from Database"
-            else:
-                print("summarizePDF - 8")
-                #print text2summarize to logs
-                app.logger.info(text2summarize)
-                print("summarizePDF - 8.1")
-                openAI_summary_JSON, session['is_trimmed'], session['form_prompt'], session['number_of_chunks'] = openAI_keyInsights_chunk(text2summarize)
-                openAI_summary = openAI_summary_JSON["choices"][0]['message']['content']
-                summary_page_title = openAI_page_title(openAI_summary)
-                write_json_to_file(text2summarize_hash + ".json", openAI_summary_JSON)
-                if check_folder_exists(app.config['UPLOAD_CONTENT']):
-                  write_content_to_file(text2summarize_hash + ".txt", text2summarize)
-            print("summarizePDF - 9")
-            session['openAI_summary_PDF'] = openAI_summary
-            session['openAI_summary_JSON_PDF'] = openAI_summary_JSON
-            session['text2summarize_PDF'] = text2summarize
-            session['summary_page_title'] = summary_page_title  
-            return redirect(url_for('keyInsightsPDF'))
+              # Seek to the beginning of the file before saving, then save the file
+              pdf_file.seek(0)
+              # Check if folder exists:
+              if check_folder_exists(app.config['UPLOAD_FOLDER']):
+                  pdf_file.save(pdf_path)
+                  print("summarizePDF - 6")
+              # Check if the hash exists in the Local Database, before calling the OpenAI API
+              if get_key_insights_from_hash(text2summarize_hash):
+                  print("summarizePDF - 7")
+                  openAI_summary = get_key_insights_from_hash(text2summarize_hash)
+                  openAI_summary_JSON = read_from_file_json(text2summarize_hash + "_insights.json")
+                  summary_page_title = get_title_from_hash(text2summarize_hash)
+                  #Support for Legacy Database entries without title
+                  if not summary_page_title:
+                    summary_page_title = openAI_page_title(openAI_summary)                
+                  session['is_trimmed'] = False
+                  session['form_prompt'] = text2summarize
+                  session['number_of_chunks'] = "Retrieved from Database"
+              else:
+                  print("summarizePDF - 8")
+                  #print text2summarize to logs
+                  app.logger.info(text2summarize)
+                  print("summarizePDF - 8.1")
+                  openAI_summary_JSON, session['is_trimmed'], session['form_prompt'], session['number_of_chunks'] = openAI_keyInsights_chunk(text2summarize)
+                  openAI_summary = openAI_summary_JSON["choices"][0]['message']['content']
+                  summary_page_title = openAI_page_title(openAI_summary)
+                  write_json_to_file(text2summarize_hash + ".json", openAI_summary_JSON)
+                  if check_folder_exists(app.config['UPLOAD_CONTENT']):
+                    write_content_to_file(text2summarize_hash + ".txt", text2summarize)
+              print("summarizePDF - 9")
+              session['openAI_summary_PDF'] = openAI_summary
+              session['openAI_summary_JSON_PDF'] = openAI_summary_JSON
+              session['text2summarize_PDF'] = text2summarize
+              session['summary_page_title'] = summary_page_title  
+              return redirect(url_for('keyInsightsPDF'))
 
         # Now that we have the summary, we can render the page
         if session.get('openAI_summary_PDF'):

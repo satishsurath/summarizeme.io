@@ -175,3 +175,6 @@ app.db
 
 #ignore migrations
 production-sql-migration/*
+
+app/static/uploads/*
+app/text2summary/*
