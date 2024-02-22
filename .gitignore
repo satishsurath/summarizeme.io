@@ -167,3 +167,6 @@ sessions/*
 
 #ignore local db
 app.db
+
+#ignore migrations
+production-sql-migration/*
