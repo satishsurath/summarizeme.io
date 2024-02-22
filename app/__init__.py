@@ -1,7 +1,7 @@
 import os
 import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
-
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import Flask, request, session, has_request_context
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
@@ -20,6 +20,11 @@ migrate = Migrate(app, db)
 
 # Initialize the session
 Session(app)
+
+# Initialize ProxyFix
+# The number 1 indicates that one proxy server is in front of your app
+if os.getenv('OAUTHLIB_INSECURE_TRANSPORT') != '1':
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
 # ---------------  Flash-Dance oAuth Login - Linkedin  --------------- #
 # Initialize the linkedin blueprint
