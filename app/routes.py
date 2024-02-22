@@ -1370,8 +1370,8 @@ def logout():
   return redirect(url_for('index'))
 
 #rewriting the logs to show user's entries if session.get('name', False) is True
-@app.route('/logs2', methods=['GET', 'POST'])
-def logs2():
+@app.route('/logs', methods=['GET', 'POST'])
+def logs():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 25, type=int)
 
@@ -1433,8 +1433,8 @@ def logs2():
 
 # Assuming Entry_Posts_History and Entry_Post models are defined with SQLAlchemy
 
-@app.route('/logs', methods=['GET', 'POST'])
-def logs():
+@app.route('/logs2', methods=['GET', 'POST'])
+def logs2():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 25, type=int)
 
