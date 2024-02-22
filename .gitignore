@@ -162,11 +162,16 @@ cython_debug/
 # ignore sessions
 sessions/*
 
+#logs
+logs/*
+
+
 #ignore migrations
 #migrations/*
 
 #ignore local db
 app.db
+*.sqlite3
 
 #ignore migrations
 production-sql-migration/*
