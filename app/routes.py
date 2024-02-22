@@ -19,7 +19,7 @@ from app.utility_functions import num_tokens_from_string, avg_sentence_length, n
 from flask import render_template, flash, redirect, url_for, request, session
 from trafilatura import extract
 from trafilatura.settings import use_config
-from flask_sqlalchemy import SQLAlchemy, Pagination
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Table, Column, Float, Integer, String, MetaData, ForeignKey
 from sqlalchemy.orm import joinedload
 from flask_migrate import Migrate
@@ -38,12 +38,12 @@ from flask_apscheduler import APScheduler # for scheduling jobs - such as log cl
 
 #--------------------- Rollbar for Logging ---------------------
 
-rollbar.init(
-  access_token='a816379fa9e84950a560a7e10d7f2982',
-  environment=app.config['ROLLBAR_ENV'],
-  code_version='1.0'
-)
-rollbar.report_message('Rollbar is configured correctly', 'info')
+# rollbar.init(
+#  access_token='a816379fa9e84950a560a7e10d7f2982',
+#  environment=app.config['ROLLBAR_ENV'],
+#  code_version='1.0'
+#)
+# rollbar.report_message('Rollbar is configured correctly', 'info')
 
 
 # -------------------- Utility functions --------------------
@@ -302,8 +302,8 @@ def summarizeYouTube():
             #print("2: transcript_text:" + transcript_text)
         except:
             flash("Unable to download transcript from the provided YouTube video. Please try another video.")
-            rollbar.report_message('Unable to download transcript from the provided YouTube video. Please try another video.', 'error')
-            rollbar.report_exc_info()
+            # rollbar.report_message('Unable to download transcript from the provided YouTube video. Please try another video.', 'error')
+            # rollbar.report_exc_info()
             return redirect(url_for('summarizeYouTube'))
 
         # Perform the summarization and other necessary tasks similar to the summarizeURL function
@@ -617,7 +617,7 @@ def summarizePDF():
               except Exception as e:
                 flash("Unable to summarize the provided PDF. Please try another PDF.")
                 app.logger.error(f"Unable to summarize the provided PDF. Please try another PDF. Error: {e}")
-                rollbar.report_message('Unable to summarize the provided PDF. Please try another PDF.', 'error')
+                # rollbar.report_message('Unable to summarize the provided PDF. Please try another PDF.', 'error')
                 clear_session()
                 return redirect(url_for('keyInsightsPDF'))
             print("summarizePDF - 9")
@@ -877,8 +877,8 @@ def keyInsightsYouTube():
             #print("2: transcript_text:" + transcript_text)
         except:
             flash("Unable to download transcript from the provided YouTube video. Please try another video.")
-            rollbar.report_message('Unable to download transcript from the provided YouTube video. Please try another video.', 'error')
-            rollbar.report_exc_info()
+            # rollbar.report_message('Unable to download transcript from the provided YouTube video. Please try another video.', 'error')
+            # rollbar.report_exc_info()
             return redirect(url_for('keyInsightsYouTube'))
 
         # Perform the summarization and other necessary tasks similar to the summarizeURL function
@@ -1631,30 +1631,30 @@ def retry_with_exponential_backoff(func):
             except (openai.error.ServiceUnavailableError) as e:
                 error_type = "Rate limit exceeded" if isinstance(e, openai.error.RateLimitError) else "Service unavailable"
                 print(f"{error_type}. Retrying after delay... (Attempt {attempt + 1} of {max_retries})")
-                rollbar.report_message(f'{error_type}. Retrying after delay... {str(e)}', 'warning')
-                rollbar.report_exc_info()
+                # rollbar.report_message(f'{error_type}. Retrying after delay... {str(e)}', 'warning')
+                # rollbar.report_exc_info()
                 time.sleep(retry_delay)
                 # Increase the delay for the next retry with some random jitter
                 retry_delay *= 2 * random.uniform(0.8, 1.2)
             except (openai.error.RateLimitError) as e:
                 error_type = "Rate limit exceeded" if isinstance(e, openai.error.RateLimitError) else "Service unavailable"
                 print(f"{error_type}. Retrying after delay... (Attempt {attempt + 1} of {max_retries})")
-                rollbar.report_message(f'{error_type}. Retrying after delay... {str(e)}', 'warning')
-                rollbar.report_exc_info()
+                # rollbar.report_message(f'{error_type}. Retrying after delay... {str(e)}', 'warning')
+                # rollbar.report_exc_info()
                 time.sleep(retry_delay)
                 # Increase the delay for the next retry with some random jitter
                 retry_delay *= 2 * random.uniform(0.8, 1.2)                
             except openai.error.OpenAIError as e:
                 # Handle other OpenAI-specific errors
                 print(f"An OpenAI error occurred: {e}")
-                rollbar.report_message(f"An OpenAI error occurred: {e}", 'error')
-                rollbar.report_exc_info()
+                # rollbar.report_message(f"An OpenAI error occurred: {e}", 'error')
+                # rollbar.report_exc_info()
                 break  # Break out of retry loop for non-retryable errors
             except Exception as e:
                 # Handle other unforeseen errors
                 print(f"An unexpected error occurred: {e}")
-                rollbar.report_message(f"An unexpected error occurred: {e}", 'error')
-                rollbar.report_exc_info()
+                # rollbar.report_message(f"An unexpected error occurred: {e}", 'error')
+                # rollbar.report_exc_info()
                 break  # Break out of retry loop for non-retryable errors
         raise Exception("API call failed even after retries.")
     return wrapper
@@ -1672,7 +1672,7 @@ def openAI_summarize_chunk(form_prompt):
     # Protect against empty or whitespace-only input
     if not form_prompt or form_prompt.isspace():
         app.logger.error("Received empty or whitespace-only input.")
-        rollbar.report_message("Received empty or whitespace-only input.", 'error')
+        # rollbar.report_message("Received empty or whitespace-only input.", 'error')
         return None, None, None, None
     
     # Step 1: Call the Moderation Endpoint First
@@ -1683,8 +1683,8 @@ def openAI_summarize_chunk(form_prompt):
     except Exception as e:
         print(f"Moderation API call failed with error: {e}")
         app.logger.error(f"Moderation API call failed with error: {e}")
-        rollbar.report_message(f"Moderation API call failed with error: {e}", 'error')
-        rollbar.report_exc_info()
+        # rollbar.report_message(f"Moderation API call failed with error: {e}", 'error')
+        # rollbar.report_exc_info()
         return None, None, None, None
     
     # Step 2: Check the Moderation Result
@@ -1778,8 +1778,8 @@ def openAI_summarize_chunk(form_prompt):
                 app.logger.info(f"API call succeeded with response: {response}")
             except Exception as e:
                 print(f"API call failed with error: {e}")
-                rollbar.report_message(f"API call failed with error: {e}", 'error')
-                rollbar.report_exc_info()
+                # rollbar.report_message(f"API call failed with error: {e}", 'error')
+                # rollbar.report_exc_info()
                 app.logger.error(f"API call failed with error: {e}")
                 return None, None, None, None
                 
@@ -1812,8 +1812,8 @@ def openAI_summarize_chunk(form_prompt):
             )
         except Exception as e:
             print(f"API call failed with error: {e}")
-            rollbar.report_message(f"API call failed with error: {e}", 'error')
-            rollbar.report_exc_info()
+            # rollbar.report_message(f"API call failed with error: {e}", 'error')
+            # rollbar.report_exc_info()
             app.logger.error(f"API call failed with error: {e}")
             return None, None, None, None
         
@@ -1832,7 +1832,7 @@ def openAI_keyInsights_chunk(form_prompt):
     # Protect against empty or whitespace-only input
     if not form_prompt or form_prompt.isspace():
         app.logger.error("Received empty or whitespace-only input.")
-        rollbar.report_message("Received empty or whitespace-only input.", 'error')        
+        # rollbar.report_message("Received empty or whitespace-only input.", 'error')        
         return None, None, None, None
     
     # Step 1: Call the Moderation Endpoint First
@@ -1841,7 +1841,7 @@ def openAI_keyInsights_chunk(form_prompt):
         print(moderation_response)
     except Exception as e:
         print(f"Moderation API call failed with error: {e}")
-        rollbar.report_message(f"Moderation API call failed with error: {e}", 'error')
+        # rollbar.report_message(f"Moderation API call failed with error: {e}", 'error')
         return None, None, None, None
     
     # Step 2: Check the Moderation Result
@@ -1900,7 +1900,7 @@ def openAI_keyInsights_chunk(form_prompt):
                   partial_sentence += words.pop(0) + ' '
               if not partial_sentence:
                   print(f"Unable to split sentence further: {temp_prompt}")
-                  rollbar.report_message(f"Unable to split sentence further: {temp_prompt}", 'warning')
+                  # rollbar.report_message(f"Unable to split sentence further: {temp_prompt}", 'warning')
                   break
               form_prompt_chunks.append(partial_sentence.strip())
               temp_prompt = ' '.join(words)
@@ -1929,7 +1929,7 @@ def openAI_keyInsights_chunk(form_prompt):
                 )
             except Exception as e:
                 print(f"API call failed with error: {e}")
-                rollbar.report_message(f"API call failed with error: {e}", 'error')
+                # rollbar.report_message(f"API call failed with error: {e}", 'error')
                 app.logger.error(f"API call failed with error: {e}")
                 return None, None, None, None
                 
@@ -1962,7 +1962,7 @@ def openAI_keyInsights_chunk(form_prompt):
             )
         except Exception as e:
             print(f"API call failed with error: {e}")
-            rollbar.report_message(f"API call failed with error: {e}", 'error')
+            # rollbar.report_message(f"API call failed with error: {e}", 'error')
             app.logger.error(f"API call failed with error: {e}")
             return None, None, None, None
         
