@@ -1,27 +1,28 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Summarize PDF</h1>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <div class="flashes">
-            {% for message in messages %}
-                <div class="alert alert-warning" role="alert">{{ message }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
-{% endwith %}
+
+    <h1>Key Insights YouTube Video</h1>
     
-    <form method="POST" onsubmit="document.getElementById('processing').style.display = 'block'" enctype="multipart/form-data" novalidate>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flashes">
+                {% for message in messages %}
+                    <div class="alert alert-warning" role="alert">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <form action="" method="post" onsubmit="document.getElementById('processing').style.display = 'block'" novalidate>
         {{ form.hidden_tag() }}
         <p>
-            {{ form.csrf_token }}
-            {{ form.pdf.label }}<br>
-            {{ form.pdf(class_='form-control',placeholder='Upload PDF...') }}<br>
-            {% for error in form.pdf.errors %}
+            {{ form.youtube_url.label }}<br>
+            {{ form.youtube_url(class_='form-control',placeholder='Enter YouTube URL...', style='width: 300px;') }}<br>
+            {% for error in form.youtube_url.errors %}
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
-            <br>         
+            <br>
             {{ form.accept_terms(id='accept_terms') }} I accept the <a href="/privacy-policy" target="_blank">Privacy Policy</a> and Terms of Use<br>
             {% for error in form.accept_terms.errors %}
             <span style="color: red;">[{{ error }}]</span>
@@ -32,17 +33,18 @@
         <br>
         <div id="processing" class="processing"></div>
         {% include 'user_status.html' %}
-
+        
     </form>
 </div>
-<div class="item">        
-        {% if openAI_summary %}
-            <div class="left-align">
-                <details><summary>Suggested Title:</summary></details>
-                <h2> {{ summary_page_title }}</h2>
-                <hr>                
+<div class="item">
 
-            <h2>Summary:</h2>
+        {% if openAI_summary %}
+        <div class="left-align">
+            <details><summary>Suggested Title:</summary></details>
+            <h2> {{ summary_page_title }}</h2>
+
+            <hr>
+            <h2>Key Insights:</h2>
             <div id="summary-content">
                 <ul>
                     {% for para_summary in openAI_summary %}
@@ -52,8 +54,7 @@
             </div>
             <hr>
             {% include 'reuse-copy-share.html' %}
-            <hr>            
-            
+            <hr>
             <details>
                 <summary>Stats for Nerds</summary>
                 <p><strong>Token count:</strong> {{ token_count }}</p>
@@ -77,7 +78,6 @@
             </details>
         </div>
         {% include 'reuse-original-text.html' %}
-    
         {% endif %}
 
 {% endblock %}

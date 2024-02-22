@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Summarize PDF</h1>
+    <h1>Key Insights PDF</h1>
     {% with messages = get_flashed_messages() %}
     {% if messages %}
         <div class="flashes">
@@ -42,7 +42,7 @@
                 <h2> {{ summary_page_title }}</h2>
                 <hr>                
 
-            <h2>Summary:</h2>
+            <h2>Key Insights:</h2>
             <div id="summary-content">
                 <ul>
                     {% for para_summary in openAI_summary %}

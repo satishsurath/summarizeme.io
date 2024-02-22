@@ -142,6 +142,17 @@ def get_summary_from_hash(text2summarize_hash):
   else:
     return False
 
+# function to return the Summary if the hash of text2summarize is already in the database
+def get_key_insights_from_hash(text2summarize_hash):
+  entry = Entry_Post.query.filter_by(text2summarize_hash=text2summarize_hash).first()
+  if entry:
+    if entry.openAIkeyInsights == None:
+      return False
+    else:
+      return entry.openAIkeyInsights
+  else:
+    return False
+
 
 # function to return the Page Title if the hash of text2summarize is already in the database
 def get_title_from_hash(text2summarize_hash):
@@ -158,7 +169,14 @@ def get_title_from_hash(text2summarize_hash):
 # Function to write to the database
 def write_entry_to_db(posttype, url, text2summarizedb, openAIsummarydb, openAItitledb):
     try:
-        if not session.get('content_written', False):
+        # Check for an existing entry with the same openAIkeyInsights
+        existing_entry = Entry_Post.query.filter_by(openAIsummary=openAIsummarydb).first()
+
+        if existing_entry and not session.get('content_written', False):
+            # Update the openAIkeyInsights for the existing entry
+            existing_entry.openAIkeyInsights = openAIsummarydb
+            db.session.commit()
+        elif not session.get('content_written', False):
             text2summarize_hash = hashlib.sha256(text2summarizedb.encode('utf-8')).hexdigest()
             entry = Entry_Post(posttype=posttype, url=url, text2summarize=text2summarizedb, openAIsummary=openAIsummarydb, text2summarize_hash=text2summarize_hash, openAItitle=openAItitledb)
             db.session.add(entry)
@@ -170,7 +188,43 @@ def write_entry_to_db(posttype, url, text2summarizedb, openAIsummarydb, openAIti
                 user = oAuthUser.query.filter_by(linkedin_id=user_linkedin).first()
                 if user:
                     # User exists, write to entry_history table
-                    #entry_history = Entry_Posts_History(oAuthUser_id=user.id, entry_id=entry.id)
+                    entry_history = Entry_Posts_History(oAuthUser_id=user.id, entry_post_id=entry.id)
+                    db.session.add(entry_history)
+                    db.session.commit()
+
+            session['content_written'] = True
+            return True
+    except Exception as e:  # Catch the exception
+        db.session.rollback()  # Rollback the session
+        print("Error occurred. Could not write to database.")
+        print(f"Error details: {e}")  # Print the details of the error
+        app.logger.error("Error occurred. Could not write to database.")
+        app.logger.error(f"Error details: {e}")  # Log the details of the error
+        return False
+    finally:
+        db.session.close()
+
+# Function to write to the database
+def write_insights_to_db(posttype, url, text2summarizedb, openAIkeyInsightsdb, openAItitledb):
+    try:
+        text2summarize_hash = hashlib.sha256(text2summarizedb.encode('utf-8')).hexdigest()
+        existing_entry = Entry_Post.query.filter_by(text2summarize_hash=text2summarize_hash).first()
+
+        if existing_entry and not session.get('content_written', False):
+            # Update the openAIkeyInsights for the existing entry
+            existing_entry.openAIkeyInsights = openAIkeyInsightsdb
+            db.session.commit()
+        elif not session.get('content_written', False):
+            entry = Entry_Post(posttype=posttype, url=url, text2summarize=text2summarizedb, openAIkeyInsights=openAIkeyInsightsdb, text2summarize_hash=text2summarize_hash, openAItitle=openAItitledb)
+            db.session.add(entry)
+            db.session.commit()
+
+            # Check if user is logged in
+            if session.get('linkedin_id', False):
+                user_linkedin = session['linkedin_id']
+                user = oAuthUser.query.filter_by(linkedin_id=user_linkedin).first()
+                if user:
+                    # User exists, write to entry_history table
                     entry_history = Entry_Posts_History(oAuthUser_id=user.id, entry_post_id=entry.id)
                     db.session.add(entry_history)
                     db.session.commit()

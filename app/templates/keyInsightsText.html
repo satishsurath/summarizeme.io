@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Summarize From Text</h1>
+    <h1>Key Insights From Text</h1>
     {% with messages = get_flashed_messages() %}
     {% if messages %}
         <div class="flashes">
@@ -45,7 +45,7 @@
                
             <hr>          
             
-            <h2>Summary:</h2>
+            <h2>Key Insights:</h2>
             <ul>
                 {% for para_summary in openAI_summary %}
                     <li>{{para_summary}}</li>

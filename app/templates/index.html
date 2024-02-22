@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-        <h1 class="center-align">SummarizeMe.io<span style="color:red;font-size:2em;">+</span></h1>
+        <h1 class="center-align">SummarizeMe.io</h1>
         {% with messages = get_flashed_messages() %}
                 {% if messages %}
                 <div class="flashes">
@@ -11,25 +11,26 @@
                 {% endif %}
         {% endwith %}
         <details>
-        <summary class="homepage-heading">About <span style="color:red;font-size:2em;">+</span></summary>                
+        <summary class="homepage-heading">About</summary>                
+        <h2 class="center-align">Productivity Upgrade</h2>
         <h2 class="center-align"> 📄 ➕ 🤖 ➡ 🎯 </h2>
         <br>
-        <p class="center-align">       
-        Unlock the full power of GPT4! <br>
-        Summrize web pages, YouTube Videos, and PDFs More Accurately <br>
-        Save time and boost productivity with SummarizeMe.io<span style="color:red;font-size:1em;">+</span> <br>
-        Coming Soon: chat with your content!
+        <p class="center-align">                            
+        AI-powered text summarization made simple. <br>
+        Condense articles, web pages, YouTube Videos, and PDFs effortlessly. <br>
+        Save time and boost productivity with SummarizeMe.io 
         </p>
         <br>
         </details>
         <hr>
-        <h3 class="center-align">Summarize:</h3>
-        <h3 class="center-align">
-                <ul>
-                        <li>
+        
+                <h4 class="center-align">Summarize:</h4>  
+        
+                <ul class="center-align">
+                        <li class="nav-links">
                                 <a href="{{ url_for('summarizeText') }}" style="text-decoration: none;">
                                         
-                                        <svg style="fill: var(--text-color);height:4em; width:4em;"  version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+                                        <svg style="fill: var(--text-color);height:3em; width:3em;"  version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
                                         viewBox="0 0 303.188 303.188" xml:space="preserve">
                                                 <g>
                                                         <polygon style="fill:#E8E8E8;" points="219.821,0 32.842,0 32.842,303.188 270.346,303.188 270.346,50.525 	"/>
@@ -54,10 +55,10 @@
                                         Text  
                                 </a>         
                         </li>
-                        <li>
+                        <li class="nav-links">
                                 <a href="{{ url_for('summarizeURL') }}" style="text-decoration: none;"> 
                                          
-                                        <svg  style="fill: var(--text-color);height:4em; width:4em;" viewBox="0 0 16.004 16.004" xmlns="http://www.w3.org/2000/svg">
+                                        <svg  style="fill: var(--text-color);height:3em; width:3em;" viewBox="0 0 16.004 16.004" xmlns="http://www.w3.org/2000/svg">
                                                 <g color="#000000" style="fill: var(--text-color);">
                 
                                                 <path d="M8 4.846v10.38l-2.344-2.288-1.34 2.734c-.327.74-2.033.145-1.548-.844l1.326-2.839H1.136z" style="marker:none" display="block" overflow="visible"/>
@@ -70,10 +71,10 @@
                                 </a>
                                 
                         </li>
-                        <li>
+                        <li class="nav-links">
                                 <a href="{{ url_for('summarizeYouTube') }}" style="text-decoration: none;"> 
                                         
-                                        <svg  style="fill: var(--text-color);height:4em; width:4em;" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48" xml:space="preserve">
+                                        <svg  style="fill: var(--text-color);height:3em; width:3em;" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48" xml:space="preserve">
                                                 <linearGradient id="PgB_UHa29h0TpFV_moJI9a" x1="9.816" x2="41.246" y1="9.871" y2="41.301" gradientUnits="userSpaceOnUse">
                                                         <stop offset="0" stop-color="#f44f5a"/><stop offset=".443" stop-color="#ee3d4a"/>
                                                         <stop offset="1" stop-color="#e52030"/>
@@ -86,10 +87,10 @@
                                         YouTube
                                 </a>
                         </li>                        
-                        <li>
+                        <li class="nav-links">
                                 <a href="{{ url_for('summarizePDF') }}" style="text-decoration: none;"> 
                                         
-                                        <svg  style="fill: var(--text-color);height:4em; width:4em;" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 303.188 303.188" xml:space="preserve">
+                                        <svg  style="fill: var(--text-color);height:3em; width:3em;" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 303.188 303.188" xml:space="preserve">
                                                 <g>
                                                         <polygon style="fill:#E8E8E8;" points="219.821,0 32.842,0 32.842,303.188 270.346,303.188 270.346,50.525 	"/>
                                                         <path style="fill:#FB3449;" d="M230.013,149.935c-3.643-6.493-16.231-8.533-22.006-9.451c-4.552-0.724-9.199-0.94-13.803-0.936
@@ -135,113 +136,9 @@
                                         PDF
                                 </a>
                         </li>
-                        </ul>
-                </ul>    
-        </h3>
-        {% include 'user_status.html' %}
-        <details>
-                <summary class="homepage-heading">Release Notes</summary>
-
-                                
-                <h3>v0.5.0 Fifth Major Release</h3>
-                <p class="left-align">
-                <b>Features in this release:</b><br>
-                - Improved Stability!<br>
-                <br>
-
-
-                <h3>v0.4.0 Fourth Major Release</h3>
-                <p class="left-align">
-                <b>Features in this release:</b><br>
-                - Summarize YouTube Videos! <br>
-                <br>
-
-
-                <h3>v0.3.0 Third Major Release</h3>
-                <p class="left-align">
-                <b>Features in this release:</b><br>
-                - Generates "Suggested Page Title"<br>
-                - Banner for Development and Beta Environments<br>
-                - Share Page now shows Shortened URL<br>
-                - Added Page Analytics using self Hosted Matomo <br>
-                - Now using mySQL backend<br>
-                <br>
-
-
-                <h3><v0 class="2 3"></v0>v0.2.3 Pre-Production  Release</h3>
-                <b>New Features in this release</b><br>
-                - Backend mySQL Migration from SQLite<br>
-
-                <h3>v0.2.2 Pre-Production  Release</h3>
-                <b>New Features in this release</b><br>
-                - Added Custom Matomo Page Analytics Support<br>
-                - Share Page now shows Shortened URL<br>
-
-
-
-                <h3>v0.2.1 Pre-Production  Release</h3>
-                <b>New Features in this release</b><br>
-                - Preliminary Matomo Page Analytics Support<br>
-                - Adding Support (with Banner) for Development and Beta Environments<br>
-                - Added "Suggested Page Title" Support for all Summaries<br>
-                &nbsp;&nbsp; - Updated Database to support "Suggested Page Title"<br>
-                - Updated Requirements.txt File<br>
-                - Bug Fix for Saving repeated entries for Signed In Users<br>
-
-
                 
-                <h3>v0.2.0 Second Major Release</h3>
-                <p class="left-align">
-                <b>Features in this release:</b><br>
-                - Sign In with LinkedIn to Save and View Summaries Later<br>
-                - Added a new page to view all the Summaries you have saved<br>
-                - Many Bug Fixes and overall improvements in Error Checking<br>
-                - Improved Backend Error Logging Support<br>
-                - Major Database Changes to support LinkedIn based Sign In<br>
-                - Code Refactoring and Improvements<br>
-                - Major UI Improvements<br>
-                <br>
-
-
-                <h3>v0.1.3 Pre-Production  Release</h3>
-                <b>New Features in this release</b><br>
-                - Change the Prompt to give the output in English<br>
-                - Major layout changes to the backend Logs page<br>
-                - Added Twitter Icon to the Share Page<br>
-                - Improve Share Page Responsiveness for smaller screens<br>
-
-                <h3>v0.1.2 Pre-Production  Release</h3>
-                <b>New Features in this release</b><br>
-                - Many UI Tweaks and SVG Icons added to Homepage<br>
-                - Bug fixes: Made the code more robust and more error checking code<br>
-                - Migrated to Session Variables for better performance<br>
-                - Added Flash Message Placeholder for Summarizel pages<br>
-
-
-                <h3>V0.1.1 Pre-Production Release</h3>
-                <b>New Features in this release</b><br>
-                - Added the ability to Share the Summary (as a dedicated Page)<br>
-                - Improvements to Logs Page (Read More, Link to JSON Files)<br>
-                - Adding a new 404.html page<br>
-                - Minor updates to Privacy and Readme files<br>
-                - Bug Fix: Share Page is now responsive<br>
-                - Bug Fix: global_prompt has been moved to a local variable<br>
-
-                <h3>v0.1.0 First Major Release</h3>
-                <p class="left-align">
-                <b>Features in this release:</b><br>
-                - Summarize From Text, Webpages and PDF files<br>
-                - Unlimited Token Support with chunking. No more token size limits<br>
-                - Additional stats display and raw JSON output option<br>
-                - Local Database Storage for faster retrieval<br>
-                - Privacy Policy (first version) added<br>
-                - Backend Logs and Debug Page for site admins<br>
-                - Dark Mode Toggle<br>             
-                <br>
-                <b>Features In the Pipeline:</b><br>
-                - SPAM Protection<br>
-                - Integration of Additional LLMs (by Google for example)<br>
-                </p>
-        </details>
+                </ul>    
+        {% include 'user_status.html' %}
+        
 
 {% endblock %}
