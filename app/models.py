@@ -60,4 +60,4 @@ class LogEntry(db.Model):
     id: Mapped[int] = db.Column(db.Integer, primary_key=True)
     timestamp: Mapped[datetime] = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     level: Mapped[str] = db.Column(db.String(50))
-    message: Mapped[str] = db.Column(db.String(1000))
+    message: Mapped[str] = db.Column(db.Text)
