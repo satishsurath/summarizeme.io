@@ -2044,15 +2044,16 @@ scheduler.init_app(app)
 scheduler.start()
 
 def delete_old_logs():
-    try:
-        threshold = datetime.utcnow() - timedelta(hours=24)
-        result = LogEntry.query.filter(LogEntry.timestamp < threshold).delete()
-        db.session.commit()
-        # Log the number of deleted log entries
-        app.logger.info(f"Deleted {result} old log entries.")
-    except Exception as e:
-        # Log any errors that occur during the cleanup process
-        app.logger.error(f"Error deleting old logs: {e}")
+    with app.app_context():
+      try:
+          threshold = datetime.utcnow() - timedelta(hours=24)
+          result = LogEntry.query.filter(LogEntry.timestamp < threshold).delete()
+          db.session.commit()
+          # Log the number of deleted log entries
+          app.logger.info(f"Deleted {result} old log entries.")
+      except Exception as e:
+          # Log any errors that occur during the cleanup process
+          app.logger.error(f"Error deleting old logs: {e}")
 
 
 scheduler.add_job(id='Delete Old Logs', func=delete_old_logs, trigger='interval', hours=1)
