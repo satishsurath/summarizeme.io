@@ -1422,17 +1422,30 @@ def logs():
         for entry_post in all_entry_posts:
             entry_post_history_item = next((item for item in entry_post_history if item.entry_post_id == entry_post.id), None)
             if entry_post_history_item:
-                final_results.append({
-                    'id': entry_post.id,
-                    'timestamp': entry_post.timestamp,
-                    'url': entry_post.url,
-                    'text2summarize': entry_post.text2summarize,
-                    'text2summarize_hash': entry_post.text2summarize_hash,
-                    'openAIsummary': entry_post.openAIsummary,
-                    'posttype': entry_post.posttype,
-                    'email': entry_post_history_item.oAuthUser.email,
-                    'name': entry_post_history_item.oAuthUser.name,
-                })
+                if entry_post_history_item.oAuthUser:
+                  final_results.append({
+                      'id': entry_post.id,
+                      'timestamp': entry_post.timestamp,
+                      'url': entry_post.url,
+                      'text2summarize': entry_post.text2summarize,
+                      'text2summarize_hash': entry_post.text2summarize_hash,
+                      'openAIsummary': entry_post.openAIsummary,
+                      'posttype': entry_post.posttype,
+                      'email': entry_post_history_item.oAuthUser.email,
+                      'name': entry_post_history_item.oAuthUser.name,
+                  })
+                else:
+                  final_results.append({
+                      'id': entry_post.id,
+                      'timestamp': entry_post.timestamp,
+                      'url': entry_post.url,
+                      'text2summarize': entry_post.text2summarize,
+                      'text2summarize_hash': entry_post.text2summarize_hash,
+                      'openAIsummary': entry_post.openAIsummary,
+                      'posttype': entry_post.posttype,
+                      'email': 'N/A',
+                      'name': 'N/A',
+                  }) 
             else:
                 final_results.append({
                     'id': entry_post.id,
@@ -1527,15 +1540,21 @@ def delete_entry(entry_id):
 @login_required
 def view(hash):
   #check if the hash exists in the Local Database, before calling the OpenAI API
+  print("view - 1")
   if check_if_hash_exists(hash):
+    print("view - 2")
     openAI_summary = get_summary_from_hash(hash)
+    #print("view - 3: openAI_summary:" + openAI_summary)
     text2summarize = read_from_file_content(hash+".txt")
+    print("view - 4: text2summarize:" + text2summarize)
     openAI_json = read_from_file_json(hash+".json")
     openAI_json_str = json.dumps(openAI_json, indent=4)
     summary_page_title = get_title_from_hash(hash)
     #Support for Legacy Database entries without title
     if not summary_page_title:
-        summary_page_title = openAI_page_title(openAI_summary)    
+        summary_page_title = openAI_page_title(openAI_summary)
+    if not openAI_summary:
+       openAI_summary = "Error: Could not retrieve the summary from the database"    
     return render_template(
       'view.html',
       openAI_summary=openAI_summary.split('\n'),
@@ -1617,40 +1636,30 @@ def openAI_summarize_debug(form_openai_key, form_prompt):
 
 #function that takes the text2summarize chunks it to make sure its within the max token limit and then openAI API to with a custom prompt
 def openAI_page_title(form_prompt):
-    #if form_prompt:
-    #  print("openAI_page_title:" + form_prompt)
-    #else:
-    #  print("openAI_page_title: form_prompt is empty")
-    global_prompt = "Given the summary of the Article, Suggest a Title. treat every thing below as the article summary: \n\n"
-    # Count tokens in the form_prompt
-    token_count = num_tokens_from_string(form_prompt)
-    # max_tokens = 3500 #original
-    max_tokens = 4000
-    
-    # Trim the form_prompt if the token count exceeds the model's maximum limit
-    if token_count > max_tokens:
-        #print("prompt is too long, trimming...")
-        form_prompt_chunks = []
-        chunks = [sentence for sentence in sent_tokenize(form_prompt)]
-        title_prompt = ''
-        for sentence in chunks:
-            if num_tokens_from_string(title_prompt + sentence) < max_tokens:
-                title_prompt += sentence
+    if form_prompt:
+      #  print("openAI_page_title:" + form_prompt)
+      #else:
+      #  print("openAI_page_title: form_prompt is empty")
+      global_prompt = "Given the summary of the Article, Suggest a Title. treat every thing below as the article summary: \n\n"
+      title_prompt = form_prompt
+      # If the length of the title_prompt is greater than 4000 characters, then we need to trim it the first 4000 characters
+      if len(title_prompt) > 4000:
+          title_prompt = title_prompt[:4000]
+
+      message = {"role": "user", "content": global_prompt + title_prompt}
+      response = openai.ChatCompletion.create(
+          model="gpt-3.5-turbo",
+          messages=[message],
+          temperature=0.7,
+          max_tokens=500,
+          top_p=1.0,
+          frequency_penalty=0.0,
+          presence_penalty=1
+      )
+      openai_response = response["choices"][0]['message']['content']
+      return openai_response
     else:
-       title_prompt = form_prompt
-        # The prompt is not too long (its within the max token limit), so we can just call the API
-    message = {"role": "user", "content": global_prompt + title_prompt}
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[message],
-        temperature=0.7,
-        max_tokens=500,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=1
-    )
-    openai_response = response["choices"][0]['message']['content']
-    return openai_response
+      return "Error: No Text to Summarize"
 
 # Define a retry decorator with exponential backoff
 def retry_with_exponential_backoff(func):

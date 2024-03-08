@@ -48,14 +48,34 @@ def read_from_file_json(filename):
       
 #Given the filename, read the file and return the contents, wrap it in try catch
 def read_from_file_content(filename):
+#change the logic to read from database isntead of file
+  try:
+     #trim the filename to get the hash
+    hash = filename.split(".")[0]
+    entry = get_entry_from_hash(hash)
+    if entry:
+      return entry.text2summarize
+    else:
+      return False
+  except Exception as e:
+    print(f"Error in read_from_file_content: {e}")
+    app.logger.error(f"Error in read_from_file_content: {e}")
+    return False
+
+
+
+
   if (app.config['WRITE_TEXT_LOCALLY'] == 'False'):
     return False
   else:
     try:
+      print("read_from_file_content - 1:" + os.path.join(app.config['UPLOAD_CONTENT'], filename))
       with open(os.path.join(app.config['UPLOAD_CONTENT'], filename), 'r') as f:
         content = f.read()
+        print("read_from_file_content - 2:" + content)
       return content
-    except:
+    except Exception as e:
+      print(f"Error in read_from_file_content: {e}")
       return False
 
 #check if folder os.path.join(app.config['UPLOAD_FOLDER'] exists, if not create it
@@ -134,9 +154,15 @@ def check_if_hash_exists(text2summarize_hash):
 # function to return the Summary if the hash of text2summarize is already in the database
 def get_summary_from_hash(text2summarize_hash):
   entry = Entry_Post.query.filter_by(text2summarize_hash=text2summarize_hash).first()
+  print("get_summary_from_hash" + text2summarize_hash)
+  #print(entry)
+  #print(entry.openAIsummary)
+  #print(entry.text2summarize) 
   if entry:
     if entry.openAIsummary == None:
       return False
+    #elif entry.text2summarize:
+    #  return entry.text2summarize
     else:
       return entry.openAIsummary
   else:
