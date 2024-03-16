@@ -228,22 +228,10 @@ function applyTheme() {
             <nav class="navbar">
               <ul>
                 <li> <a href="{{ url_for('index') }}"><img src="/static/SummarizeMe_transparent_logov4.png" alt="SummarizeMe.io Logo - AI-Powered Text Summarization" aria-label="SummarizeMe.io Homepage" height="45px" width="162px"></a></li>
-                <li class="nav-links"> Summarize: <ul>
                 <li class="nav-links"> <a href="{{ url_for('summarizeText') }}" alt="SummarizeMe.io - Text Summarization" aria-label="SummarizeMe.io - Text Summarization">Text</a></li> 
                 <li class="nav-links"> <a href="{{ url_for('summarizeURL') }}" alt="SummarizeMe.io - Webpage Summarization" aria-label="SummarizeMe.io - Webpage Summarization">URL</a></li>
                 <li class="nav-links"> <a href="{{ url_for('summarizeYouTube') }}" alt="SummarizeMe.io - YouTube Summarization" aria-label="SummarizeMe.io - YouTube Summarization">YouTube</a></li>
                 <li class="nav-links"> <a href="{{ url_for('summarizePDF') }}" alt="SummarizeMe.io - PDF Summarization" aria-label="SummarizeMe.io - PDF Summarization">PDF</a></li>
-              </ul>
-            </li>
-            {% if current_user.is_authenticated %}
-            <li class="nav-links"> <span style="color:red;">New:</span> Key Insights: <ul>
-              <li class="nav-links"> <a href="{{ url_for('keyInsightsText') }}" alt="SummarizeMe.io - Text Key Insights" aria-label="SummarizeMe.io - Text Key Insights">Text</a></li> 
-              <li class="nav-links"> <a href="{{ url_for('keyInsightsURL') }}" alt="SummarizeMe.io - Webpage Key Insights" aria-label="SummarizeMe.io - Webpage Key Insights">URL</a></li>
-              <li class="nav-links"> <a href="{{ url_for('keyInsightsYouTube') }}" alt="SummarizeMe.io - YouTube Key Insights" aria-label="SummarizeMe.io - YouTube Key Insights">YouTube</a></li>
-              <li class="nav-links"> <a href="{{ url_for('keyInsightsPDF') }}" alt="SummarizeMe.io - PDF Key Insights" aria-label="SummarizeMe.io - PDF Key Insights">PDF</a></li>
-            </ul>
-          </li>
-          {% endif %} 
                 <li class="nav-links"> <a href="{{ url_for('logs') }}">Logs</a></li> 
                 {% if current_user.is_authenticated %}
                   <li class="nav-links"> <a href="{{ url_for('openAI_debug') }}">OpenAI Debug</a></li> 
