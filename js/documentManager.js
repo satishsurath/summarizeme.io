@@ -55,37 +55,30 @@ export class DocumentManager {
         });
     }
 
-    createDocumentCard(documentCard_xyz) {
-        // Create the card element correctly
-        console.log('Creating document card:', documentCard_xyz);
-        if (typeof document === 'undefined') {
-            throw new Error('document is not available');
+        createDocumentCard(doc) {
+            // Use 'doc' instead of 'document' to avoid shadowing the global document object
+            const card = document.createElement('div');
+            card.className = 'bg-white shadow-md rounded-lg p-4';
+            card.innerHTML = `
+                <h3 class="font-bold">${doc.name}</h3>
+                <p>Type: ${doc.type}</p>
+                <p>Size: ${(doc.size / 1024).toFixed(2)} KB</p>
+                <div class="mt-2 flex space-x-2">
+                    <button class="bg-blue-500 text-white px-3 py-1 rounded preview-btn">
+                        Preview Text
+                    </button>
+                </div>
+            `;
+            
+            // Add event listener for preview button
+            const previewBtn = card.querySelector('.preview-btn');
+            previewBtn.addEventListener('click', () => {
+                this.previewText(doc.extractedText, doc.name);
+            });
+        
+            return card;
         }
-        else
-        {
-        console.log('Creating document card:', documentCard_xyz);
-        const card = documentCard_xyz.createElement('div');
-        card.className = 'bg-white shadow-md rounded-lg p-4';
-        card.innerHTML = `
-            <h3 class="font-bold">${documentCard_xyz.name}</h3>
-            <p>Type: ${documentCard_xyz.type}</p>
-            <p>Size: ${(documentCard_xyz.size / 1024).toFixed(2)} KB</p>
-            <div class="mt-2 flex space-x-2">
-                <button class="bg-blue-500 text-white px-3 py-1 rounded preview-btn">
-                    Preview Text
-                </button>
-            </div>
-        `;
     
-        // Add event listener for preview button
-        const previewBtn = card.querySelector('.preview-btn');
-        previewBtn.addEventListener('click', () => {
-            this.previewText(documentCard_xyz.extractedText, documentCard_xyz.name);
-        });
-    
-        return card;
-        }
-    }
     
     async loadUploadHistory() {
         const historyContainer = document.getElementById('historyContainer');
