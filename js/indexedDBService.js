@@ -23,6 +23,13 @@ class IndexedDBService {
                     documentsStore.createIndex('type', 'type', { unique: false });
                     documentsStore.createIndex('uploadDate', 'uploadDate', { unique: false });
                 }
+
+                // Add files object store
+                if (!db.objectStoreNames.contains('files')) {
+                    db.createObjectStore('files', { 
+                        keyPath: 'documentId' 
+                    });
+                }
             };
 
             request.onsuccess = (event) => {
@@ -42,15 +49,49 @@ class IndexedDBService {
             const transaction = this.db.transaction(['documents'], 'readwrite');
             const store = transaction.objectStore('documents');
             
+            // Ensure the document can be stored
             const documentEntry = {
                 ...document,
                 uploadDate: new Date().toISOString(),
-                id: undefined  // Let autoIncrement handle ID
+                // Convert file to storable format
+                rawFile: {
+                    name: document.rawFile.name,
+                    type: document.rawFile.type,
+                    size: document.rawFile.size,
+                    lastModified: document.rawFile.lastModified
+                }
             };
+
+            // Remove the actual File object, which can't be stored directly
+            delete documentEntry.rawFile;
 
             const request = store.add(documentEntry);
 
-            request.onsuccess = (event) => resolve(event.target.result);
+            request.onsuccess = (event) => {
+                // Store the actual file separately if needed
+                this.storeFileBlob(event.target.result, document.rawFile);
+                resolve(event.target.result);
+            };
+
+            request.onerror = (event) => {
+                reject(`Add Document Error: ${event.target.error}`);
+            };
+        });
+    }
+
+    async storeFileBlob(documentId, file) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['files'], 'readwrite');
+            const store = transaction.objectStore('files');
+
+            const fileEntry = {
+                documentId: documentId,
+                file: file
+            };
+
+            const request = store.add(fileEntry);
+
+            request.onsuccess = () => resolve();
             request.onerror = (event) => reject(event.target.error);
         });
     }

@@ -51,6 +51,21 @@ class DocumentManager {
         });
     }
 
+    async getFileForDocument(documentId) {
+        await this.openDatabase();
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['files'], 'readonly');
+            const store = transaction.objectStore('files');
+            const request = store.get(documentId);
+    
+            request.onsuccess = (event) => {
+                resolve(event.target.result ? event.target.result.file : null);
+            };
+    
+            request.onerror = (event) => reject(event.target.error);
+        });
+    }
+
     createDocumentCard(document) {
         const card = document.createElement('div');
         card.className = 'bg-white shadow-md rounded-lg p-4';
