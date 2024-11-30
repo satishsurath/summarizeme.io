@@ -57,6 +57,10 @@ export class DocumentManager {
 
     createDocumentCard(document) {
         // Create the card element correctly
+        console.log('Creating document card:', document);
+        if (typeof document === 'undefined') {
+            throw new Error('document is not available');
+        }
         const card = document.createElement('div');
         card.className = 'bg-white shadow-md rounded-lg p-4';
         card.innerHTML = `
