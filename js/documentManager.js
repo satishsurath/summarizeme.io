@@ -55,21 +55,21 @@ export class DocumentManager {
         });
     }
 
-    createDocumentCard(document1) {
+    createDocumentCard(documentCard_xyz) {
         // Create the card element correctly
-        console.log('Creating document card:', document1);
+        console.log('Creating document card:', documentCard_xyz);
         if (typeof document === 'undefined') {
             throw new Error('document is not available');
         }
         else
         {
-        console.log('Creating document card:', document1);
-        const card = document1.createElement('div');
+        console.log('Creating document card:', documentCard_xyz);
+        const card = documentCard_xyz.createElement('div');
         card.className = 'bg-white shadow-md rounded-lg p-4';
         card.innerHTML = `
-            <h3 class="font-bold">${document1.name}</h3>
-            <p>Type: ${document1.type}</p>
-            <p>Size: ${(document1.size / 1024).toFixed(2)} KB</p>
+            <h3 class="font-bold">${documentCard_xyz.name}</h3>
+            <p>Type: ${documentCard_xyz.type}</p>
+            <p>Size: ${(documentCard_xyz.size / 1024).toFixed(2)} KB</p>
             <div class="mt-2 flex space-x-2">
                 <button class="bg-blue-500 text-white px-3 py-1 rounded preview-btn">
                     Preview Text
@@ -80,7 +80,7 @@ export class DocumentManager {
         // Add event listener for preview button
         const previewBtn = card.querySelector('.preview-btn');
         previewBtn.addEventListener('click', () => {
-            this.previewText(document1.extractedText, document1.name);
+            this.previewText(documentCard_xyz.extractedText, documentCard_xyz.name);
         });
     
         return card;
