@@ -1,5 +1,5 @@
-import { IndexedDBService } from 'js/indexedDBService.js';
-import { PDFTextExtractor } from 'js/pdfTextExtractor.js';
+import { IndexedDBService } from '/js/indexedDBService.js';
+import { PDFTextExtractor } from '/js/pdfTextExtractor.js';
 
 class DocumentManager {
     constructor() {
