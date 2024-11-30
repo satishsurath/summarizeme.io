@@ -1,6 +1,6 @@
 import * as pdfjsLib from '/vendor/pdfjs/build/pdf.mjs';
 
-class PDFTextExtractor {
+export class PDFTextExtractor {
     static async extractTextFromPDF(file) {
         return new Promise(async (resolve, reject) => {
             try {

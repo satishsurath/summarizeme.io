@@ -1,4 +1,4 @@
-class IndexedDBService {
+export class IndexedDBService {
     constructor(dbName = 'DocumentArchive', version = 1) {
         this.dbName = dbName;
         this.version = version;
