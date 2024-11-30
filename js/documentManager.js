@@ -40,17 +40,6 @@ export class DocumentManager {
         }
     }
 
-    async loadUploadHistory() {
-        const historyContainer = document.getElementById('historyContainer');
-        historyContainer.innerHTML = '';
-
-        const documents = await this.indexedDBService.getAllDocuments();
-        documents.forEach(doc => {
-            const docCard = this.createDocumentCard(doc);
-            historyContainer.appendChild(docCard);
-        });
-    }
-
     async getFileForDocument(documentId) {
         await this.openDatabase();
         return new Promise((resolve, reject) => {
@@ -67,6 +56,7 @@ export class DocumentManager {
     }
 
     createDocumentCard(document) {
+        // Create the card element correctly
         const card = document.createElement('div');
         card.className = 'bg-white shadow-md rounded-lg p-4';
         card.innerHTML = `
@@ -74,30 +64,71 @@ export class DocumentManager {
             <p>Type: ${document.type}</p>
             <p>Size: ${(document.size / 1024).toFixed(2)} KB</p>
             <div class="mt-2 flex space-x-2">
-                <button onclick="documentManager.previewText('${document.extractedText}', '${document.name}')" 
-                        class="bg-blue-500 text-white px-3 py-1 rounded">
+                <button class="bg-blue-500 text-white px-3 py-1 rounded preview-btn">
                     Preview Text
                 </button>
             </div>
         `;
+    
+        // Add event listener for preview button
+        const previewBtn = card.querySelector('.preview-btn');
+        previewBtn.addEventListener('click', () => {
+            this.previewText(document.extractedText, document.name);
+        });
+    
         return card;
+    }
+    
+    async loadUploadHistory() {
+        const historyContainer = document.getElementById('historyContainer');
+        
+        // Clear existing content
+        historyContainer.innerHTML = '';
+    
+        // Fetch and display documents
+        this.indexedDBService.getAllDocuments()
+            .then(documents => {
+                if (documents.length === 0) {
+                    historyContainer.innerHTML = '<p>No documents uploaded yet.</p>';
+                    return;
+                }
+    
+                documents.forEach(doc => {
+                    const docCard = this.createDocumentCard(doc);
+                    historyContainer.appendChild(docCard);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading upload history:', error);
+                historyContainer.innerHTML = '<p>Error loading documents.</p>';
+            });
     }
 
     previewText(text, fileName) {
         const modal = document.getElementById('textPreviewModal');
         const titleElement = document.getElementById('modalTitle');
         const contentElement = document.getElementById('textPreviewContent');
-
+    
+        if (!modal || !titleElement || !contentElement) {
+            console.error('Modal elements not found');
+            return;
+        }
+    
         titleElement.textContent = `Text Preview: ${fileName}`;
         contentElement.textContent = text;
+        
+        // Show modal
         modal.classList.remove('hidden');
-
-        // Add close modal functionality
-        modal.onclick = (e) => {
+    
+        // Close modal when clicking outside
+        const closeModal = (e) => {
             if (e.target === modal) {
                 modal.classList.add('hidden');
+                modal.removeEventListener('click', closeModal);
             }
         };
+    
+        modal.addEventListener('click', closeModal);
     }
 
     showProgress(percentage) {
