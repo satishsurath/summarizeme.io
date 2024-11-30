@@ -1,4 +1,4 @@
-import * as pdfjsLib from './vendor/pdfjs/build/pdf.mjs';
+import * as pdfjsLib from 'vendor/pdfjs/build/pdf.mjs';
 
 class PDFTextExtractor {
     static async extractTextFromPDF(file) {
