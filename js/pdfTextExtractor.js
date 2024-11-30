@@ -1,28 +1,51 @@
+import * as pdfjsLib from './vendor/pdfjs/build/pdf.mjs';
+
 class PDFTextExtractor {
     static async extractTextFromPDF(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            
-            reader.onload = async (event) => {
-                try {
-                    // Use PDF.js (you'll need to include the PDF.js library)
-                    const loadingTask = pdfjsLib.getDocument({data: event.target.result});
-                    const pdf = await loadingTask.promise;
-                    let extractedText = '';
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Configure PDF.js with additional options
+                const loadingTask = pdfjsLib.getDocument({
+                    data: await file.arrayBuffer(),
+                    isEvalSupported: false,  // Improve security
+                    standardFontDataUrl: 'vendor/pdfjs/standard_fonts/'
+                });
 
-                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                        const page = await pdf.getPage(pageNum);
+                const pdf = await loadingTask.promise;
+                const textPromises = Array.from({length: pdf.numPages}, 
+                    async (_, i) => {
+                        const page = await pdf.getPage(i + 1);
                         const textContent = await page.getTextContent();
-                        extractedText += textContent.items.map(item => item.str).join(' ') + '\n';
+                        return textContent.items
+                            .map(item => item.str)
+                            .filter(str => str.trim() !== '')
+                            .join(' ');
                     }
+                );
 
-                    resolve(extractedText);
-                } catch (error) {
-                    reject(`PDF Extraction Error: ${error.message}`);
-                }
-            };
+                const pageTexts = await Promise.all(textPromises);
+                resolve(pageTexts.join('\n'));
 
-            reader.readAsArrayBuffer(file);
+            } catch (error) {
+                reject(`PDF Extraction Error: ${error.message}`);
+            }
         });
+    }
+
+    // Optional: Add metadata extraction
+    static async extractPDFMetadata(file) {
+        try {
+            const loadingTask = pdfjsLib.getDocument({data: await file.arrayBuffer()});
+            const pdf = await loadingTask.promise;
+            
+            return {
+                numPages: pdf.numPages,
+                // You can extract more metadata from pdf.documentInfo
+                documentInfo: await pdf.getMetadata()
+            };
+        } catch (error) {
+            console.error('Metadata extraction error', error);
+            return null;
+        }
     }
 }

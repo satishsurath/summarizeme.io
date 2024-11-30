@@ -6,6 +6,12 @@
     <title>Document Uploader and Extractor</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <script type="module">
+        import * as pdfjsLib from './vendor/pdfjs/build/pdf.mjs';
+        
+        // Configure worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdfjs/build/pdf.worker.mjs';
+    </script>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
@@ -55,6 +61,6 @@
 
     <script src="js/indexedDBService.js"></script>
     <script src="js/pdfTextExtractor.js"></script>
-    <script src="js/documentManager.js"></script>
+    <script type="module" src="js/documentManager.js"></script>
 </body>
 </html>

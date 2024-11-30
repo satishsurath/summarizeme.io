@@ -1,3 +1,6 @@
+import { IndexedDBService } from './indexedDBService.js';
+import { PDFTextExtractor } from './pdfTextExtractor.js';
+
 class DocumentManager {
     constructor() {
         this.indexedDBService = new IndexedDBService();
