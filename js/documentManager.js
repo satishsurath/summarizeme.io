@@ -109,8 +109,9 @@ export class DocumentManager {
         const modal = document.getElementById('textPreviewModal');
         const titleElement = document.getElementById('modalTitle');
         const contentElement = document.getElementById('textPreviewContent');
-    
-        if (!modal || !titleElement || !contentElement) {
+        const closeModalButton = document.getElementById('closeModalButton');
+
+        if (!modal || !titleElement || !contentElement || !closeModalButton) {
             console.error('Modal elements not found');
             return;
         }
@@ -126,10 +127,12 @@ export class DocumentManager {
             if (e.target === modal) {
                 modal.classList.add('hidden');
                 modal.removeEventListener('click', closeModal);
+                closeModalButton.removeEventListener('click', closeModal); // Remove the event listener to prevent duplicates
             }
         };
     
         modal.addEventListener('click', closeModal);
+        closeModalButton.addEventListener('click', closeModal);
     }
 
     showProgress(percentage) {
