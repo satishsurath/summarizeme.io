@@ -3,46 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Uploader and Extractor</title>
+    <title>Content Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script type="module">
         import * as pdfjsLib from './vendor/pdfjs/build/pdf.mjs';
-        
-        // Configure worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdfjs/build/pdf.worker.mjs';
     </script>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-6">Document Upload and Text Extraction</h1>
-        
-        <div class="bg-white shadow-md rounded-lg p-6">
-            <form id="uploadForm" class="mb-6">
-                <div class="flex items-center justify-center w-full">
-                    <label class="flex flex-col w-full h-32 border-4 border-dashed hover:bg-gray-100 hover:border-gray-300">
-                        <div class="flex flex-col items-center justify-center pt-7">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400 group-hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                            </svg>
-                            <p class="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-600">
-                                Select a file
-                            </p>
-                        </div>
-                        <input type="file" class="opacity-0" id="fileUpload" accept=".pdf" />
-                    </label>
-                </div>
-            </form>
+        <h1 class="text-3xl font-bold mb-6">Content Manager</h1>
 
-            <div id="progressContainer" class="hidden mb-4">
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <div id="errorContainer" class="text-red-500 mb-4"></div>
+        <!-- Tab Navigation -->
+        <div class="flex border-b mb-6">
+            <button class="tab-button px-4 py-2 -mb-px font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-500 focus:border-blue-500" data-tab="documentsTab">Documents</button>
+            <button class="tab-button px-4 py-2 -mb-px font-semibold text-gray-700 border-b-2 border-transparent hover:border-blue-500 focus:border-blue-500" data-tab="youtubeTab">YouTube Videos</button>
         </div>
 
+        <!-- Tab Content -->
+        <div id="documentsTab" class="tab-content">
+            <!-- Document Upload Section -->
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <form id="uploadForm" class="mb-6">
+                    <div class="flex items-center justify-center w-full">
+                        <label class="flex flex-col w-full h-32 border-4 border-dashed hover:bg-gray-100 hover:border-gray-300">
+                            <div class="flex flex-col items-center justify-center pt-7">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400 group-hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <p class="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-600">
+                                    Select a file
+                                </p>
+                            </div>
+                            <input type="file" class="opacity-0" id="fileUpload" accept=".pdf" />
+                        </label>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="youtubeTab" class="tab-content hidden">
+            <!-- YouTube Videos Section -->
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <form id="youtubeForm" class="mb-6">
+                    <label class="block mb-2 text-gray-700">YouTube Video URL:</label>
+                    <input type="url" id="youtubeUrl" class="w-full px-3 py-2 border rounded" placeholder="Enter YouTube URL">
+                    <button type="button" id="addVideoButton" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
+                        Add Video
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Unified Upload History Section -->
         <div class="mt-8">
             <h2 class="text-2xl font-semibold mb-4">Upload History</h2>
             <div id="historyContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -51,18 +65,21 @@
         </div>
     </div>
 
-    <!-- Modals and additional UI elements -->
-    <div id="textPreviewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-        <div class="bg-white p-6 rounded-lg max-w-2xl max-h-[80vh] overflow-auto">
-            <h3 class="text-xl font-bold mb-4" id="modalTitle"></h3>
-            <pre id="textPreviewContent" class="text-sm"></pre>
-        </div>
-    </div>
+    <script type="module" src="/js/documentManager.js"></script>
+    <script>
+        // Tab Switching Logic
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.add('hidden');
+                });
+                document.getElementById(tabId).classList.remove('hidden');
 
-    
-    
-    <script type="module" src="/js/documentManager.js">
-        console.log('document:', document);
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('border-blue-500'));
+                button.classList.add('border-blue-500');
+            });
+        });
     </script>
 </body>
 </html>
