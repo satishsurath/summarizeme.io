@@ -63,6 +63,20 @@
                 <!-- Dynamically populated upload history -->
             </div>
         </div>
+        <!-- Add this modal structure somewhere inside the <body> tag -->
+        <div id="textPreviewModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-lg w-3/4 max-w-2xl">
+                <div class="px-4 py-2 border-b border-gray-300">
+                    <h2 id="modalTitle" class="text-lg font-semibold">Text Preview</h2>
+                </div>
+                <div id="textPreviewContent" class="p-4 text-gray-700 overflow-y-auto max-h-96">
+                    <!-- Preview text will be populated here -->
+                </div>
+                <div class="flex justify-end p-4 border-t border-gray-300">
+                    <button id="closeModalButton" class="bg-blue-500 text-white px-4 py-2 rounded">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="/js/documentManager.js"></script>
