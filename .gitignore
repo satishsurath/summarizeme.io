@@ -20,3 +20,5 @@
 /fuel/app/cache/*/*
 /fuel/app/config/crypt.php
 .DS_Store
+
+
