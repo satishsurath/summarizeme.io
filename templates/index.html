@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
+    <title>YouTube Transcript Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Transcript Analyzer</h1>
+        <form id="transcript-form">
+            <label for="youtube_url">Enter YouTube URL:</label>
+            <input type="text" id="youtube_url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
+            <button type="submit">Get Transcript</button>
+        </form>
+
+        <div id="transcript-result" style="margin-top:20px;">
+            <!-- Transcript display -->
+        </div>
+
+        <div id="analysis-section" style="margin-top:20px; display:none;">
+            <button id="analyze-btn">Analyze Transcript</button>
+            <div id="analysis-result"></div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='index.js') }}"></script>
+</body>
+</html>
