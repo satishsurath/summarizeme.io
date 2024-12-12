@@ -6,6 +6,8 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from pytube import YouTube
 import openai
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +17,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 
 # Rate Limiter
 limiter = Limiter(
-    get_remote_address,
+    key_func=get_remote_address,
     app=app,
     default_limits=["10 per minute"]  # Adjust as needed
 )
@@ -45,33 +47,65 @@ def get_transcript():
 
     try:
         yt = YouTube(youtube_url)
+        video_id = yt.video_id
     except Exception as e:
         logger.error(f"Error initializing YouTube object: {e}")
         return jsonify({"status": "error", "message": "Could not process the provided URL"}), 500
 
-    # Attempt to get English captions (assuming 'en')
-    caption = None
-    for code, c in yt.captions.items():
-        # Try a heuristic to match English captions
-        if 'en' in code.lower():
-            caption = c
-            break
-
-    if caption is None:
-        return jsonify({"status": "error", "message": "No English transcript available."}), 404
-
+    # Try to fetch a transcript using youtube-transcript-api
     try:
-        srt_captions = caption.generate_srt_captions()
-        transcript_data = parse_srt_captions(srt_captions)
+        # First, try directly for English transcripts.
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+
+        # Attempt to find an English transcript among the available ones.
+        # youtube-transcript-api often provides transcripts in multiple languages.
+        # We'll try a few common English language codes:
+        english_codes = ['en', 'en-US', 'en-GB']
+        chosen_transcript = None
+
+        for code in english_codes:
+            if transcript_list.find_transcript([code]):
+                chosen_transcript = transcript_list.find_transcript([code])
+                break
+
+        if chosen_transcript is None:
+            # If no direct English transcript, try to find a transcript that contains 'en' in language code.
+            # This might catch something like 'en-CA', etc.
+            for t in transcript_list:
+                if 'en' in t.language_code.lower():
+                    chosen_transcript = t
+                    break
+
+        if chosen_transcript is None:
+            return jsonify({"status": "error", "message": "No English transcript available."}), 404
+
+        # Fetch the transcript
+        transcript_data_raw = chosen_transcript.fetch()
+        # transcript_data_raw is a list of dicts: [{'text': '...', 'start': ..., 'duration': ...}, ...]
+
+        # Some transcripts (like automatically generated) may have newline separated lines. We'll keep as is.
+        # Convert this into our desired JSON format. It's already quite structured, but let's keep consistency.
+        transcript_data = []
+        for entry in transcript_data_raw:
+            transcript_data.append({
+                "text": entry['text'],
+                "start": entry['start'],
+                "duration": entry['duration']
+            })
+
         return jsonify({
             "status": "success",
-            "video_id": yt.video_id,
+            "video_id": video_id,
             "transcript": transcript_data
         })
-    except Exception as e:
-        logger.error(f"Error generating transcript: {e}")
-        return jsonify({"status": "error", "message": "Could not retrieve transcript."}), 500
 
+    except TranscriptsDisabled:
+        return jsonify({"status": "error", "message": "Transcripts are disabled for this video."}), 404
+    except NoTranscriptFound:
+        return jsonify({"status": "error", "message": "No transcript found for this video."}), 404
+    except Exception as e:
+        logger.error(f"Error retrieving transcript via YouTubeTranscriptApi: {e}")
+        return jsonify({"status": "error", "message": "Could not retrieve transcript."}), 500
 
 @app.route('/api/analyze', methods=['POST'])
 @limiter.limit("10 per minute")
@@ -94,7 +128,7 @@ def analyze_transcript():
     try:
         # Call OpenAI
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[{"role": "system", "content": "You are a helpful assistant."},
                       {"role": "user", "content": prompt}],
             max_tokens=1500,
