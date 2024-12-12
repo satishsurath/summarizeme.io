@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>History</h1>
+<div class="mb-3">
+  <input type="text" class="form-control" id="filter-input" placeholder="Filter by Title...">
+</div>
+<div id="history-list" class="row gy-3"></div>
+
+<!-- Modal for viewing details -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><span id="details-title"></span> <small class="text-muted" id="details-date"></small></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h6>Transcript:</h6>
+        <pre id="details-transcript" class="bg-light p-3"></pre>
+        <button class="btn btn-outline-secondary btn-sm mb-3" id="copy-transcript">Copy Transcript</button>
+
+        <h6>Analysis:</h6>
+        <div id="details-analysis" class="border p-3 bg-white"></div>
+        <button class="btn btn-outline-secondary btn-sm" id="copy-analysis">Copy Analysis</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='marked.min.js') }}"></script>
+
+<script src="{{ url_for('static', filename='history.js') }}"></script>
+{% endblock %}

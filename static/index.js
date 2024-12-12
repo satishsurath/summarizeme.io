@@ -4,17 +4,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const analysisSection = document.getElementById('analysis-section');
     const analyzeBtn = document.getElementById('analyze-btn');
     const analysisResult = document.getElementById('analysis-result');
+    const saveKeyBtn = document.getElementById('save-key-btn');
+    const openaiKeyInput = document.getElementById('openai_key');
 
-    // IndexedDB setup
+    // Load key from localStorage if available
+    const savedKey = localStorage.getItem('openai_api_key');
+    if (savedKey) {
+        openaiKeyInput.value = savedKey;
+    }
+
+    saveKeyBtn.addEventListener('click', () => {
+        const key = openaiKeyInput.value.trim();
+        if (key) {
+          localStorage.setItem('openai_api_key', key);
+          alert('OpenAI API Key saved locally!');
+          console.log('Key saved to localStorage:', key);
+        } else {
+          alert('Please enter a valid OpenAI API key.');
+        }
+      });
+
     let db;
-    const request = indexedDB.open('video_transcripts', 1);
+    const request = indexedDB.open('video_transcripts', 2);
     request.onupgradeneeded = function(e) {
         db = e.target.result;
-        if(!db.objectStoreNames.contains('transcripts')) {
-            db.createObjectStore('transcripts', { keyPath: 'video_id' });
-        }
-        if(!db.objectStoreNames.contains('insights')) {
-            db.createObjectStore('insights', { keyPath: 'video_id' });
+        if(!db.objectStoreNames.contains('videos')) {
+            const store = db.createObjectStore('videos', { keyPath: 'video_id' });
+            store.createIndex('title', 'title', { unique: false });
+            store.createIndex('upload_date', 'upload_date', { unique: false });
         }
     };
     request.onsuccess = function(e) {
@@ -29,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const youtube_url = document.getElementById('youtube_url').value.trim();
         if (!youtube_url) return;
 
-        transcriptResult.innerHTML = 'Fetching transcript...';
+        transcriptResult.textContent = 'Fetching transcript...';
         analysisSection.style.display = 'none';
         analysisResult.innerHTML = '';
 
@@ -41,19 +58,23 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             if (data.status === 'success') {
-                // Store in IndexedDB
-                const tx = db.transaction('transcripts', 'readwrite');
-                tx.objectStore('transcripts').put({
+                transcriptResult.innerHTML = 'Transcript fetched.';
+
+                const tx = db.transaction('videos', 'readwrite');
+                const store = tx.objectStore('videos');
+                store.put({
                     video_id: data.video_id,
-                    transcript: data.transcript
+                    youtube_url: youtube_url,
+                    title: data.title,
+                    upload_date: data.upload_date,
+                    transcript: data.transcript,
+                    analysis_markdown: null
                 });
                 tx.oncomplete = () => {
-                    transcriptResult.innerHTML = 'Transcript fetched and stored.';
                     analysisSection.style.display = 'block';
+                    const snippet = data.transcript.slice(0,5).map(t => t.text).join('\n');
+                    transcriptResult.innerHTML = `<pre>${snippet}</pre>`;
                 };
-                // Optional: show snippet of transcript
-                const snippet = data.transcript.slice(0,5).map(t => t.text).join('\n');
-                transcriptResult.innerHTML = `<pre>${snippet}</pre>`;
             } else {
                 transcriptResult.innerHTML = `Error: ${data.message}`;
             }
@@ -63,17 +84,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     analyzeBtn.addEventListener('click', async () => {
-        analysisResult.innerHTML = 'Analyzing transcript...';
+        analysisResult.textContent = 'Analyzing transcript...';
 
-        // Retrieve transcript from IndexedDB
-        const video_id = await getLatestVideoID();
-        if (!video_id) {
-            analysisResult.innerHTML = 'No transcript to analyze.';
+        const video = await getLatestVideo();
+        if (!video) {
+            analysisResult.textContent = 'No transcript to analyze.';
             return;
         }
-        const transcriptEntry = await getTranscriptByVideoID(video_id);
-        if (!transcriptEntry) {
-            analysisResult.innerHTML = 'Transcript not found in database.';
+
+        const key = localStorage.getItem('openai_api_key');
+        if (!key) {
+            analysisResult.textContent = 'No OpenAI API key provided. Please enter your key above.';
             return;
         }
 
@@ -82,57 +103,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    video_id: video_id,
-                    transcript: transcriptEntry.transcript,
-                    analysis_type: 'detailed_summary'
+                    video_id: video.video_id,
+                    title: video.title,
+                    upload_date: video.upload_date,
+                    transcript: video.transcript,
+                    analysis_type: 'detailed_summary',
+                    openai_api_key: key
                 })
             });
             const data = await res.json();
             if (data.status === 'success') {
-                analysisResult.innerHTML = `<pre>${JSON.stringify(data.insights, null, 2)}</pre>`;
-                // Store insights
-                const tx = db.transaction('insights', 'readwrite');
-                tx.objectStore('insights').put({
-                    video_id: video_id,
-                    insights: data.insights
+                const htmlContent = marked.parse(data.analysis_markdown);
+                analysisResult.innerHTML = htmlContent;
+                const tx = db.transaction('videos', 'readwrite');
+                const store = tx.objectStore('videos');
+                store.put({
+                    ...video,
+                    analysis_markdown: data.analysis_markdown
                 });
             } else {
                 analysisResult.innerHTML = `Error: ${data.message}`;
             }
         } catch (err) {
             analysisResult.innerHTML = 'Error analyzing transcript.';
+            console.error(err);
         }
     });
 
-    async function getLatestVideoID() {
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction('transcripts', 'readonly');
-            const store = tx.objectStore('transcripts');
+    async function getLatestVideo() {
+        return new Promise((resolve) => {
+            const tx = db.transaction('videos', 'readonly');
+            const store = tx.objectStore('videos');
             const req = store.getAll();
             req.onsuccess = function() {
                 if (req.result.length > 0) {
-                    // Return the last fetched video's ID (or first if you prefer)
-                    resolve(req.result[req.result.length - 1].video_id);
+                    resolve(req.result[req.result.length - 1]);
                 } else {
                     resolve(null);
                 }
-            };
-            req.onerror = function() {
-                resolve(null);
-            };
-        });
-    }
-
-    async function getTranscriptByVideoID(video_id) {
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction('transcripts', 'readonly');
-            const store = tx.objectStore('transcripts');
-            const req = store.get(video_id);
-            req.onsuccess = function() {
-                resolve(req.result);
-            };
-            req.onerror = function() {
-                resolve(null);
             };
         });
     }
