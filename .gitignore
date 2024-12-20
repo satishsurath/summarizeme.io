@@ -189,3 +189,4 @@ sessions/*
 #logs
 logs/*
 
+.DS_Store
