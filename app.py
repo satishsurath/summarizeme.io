@@ -152,8 +152,10 @@ def generate_prompt(title, upload_date, transcript_text, analysis_type):
             f"1. A concise summary of the entire content.\n"
             f"2. Key topics or themes covered in the video.\n"
             f"3. Important takeaways or lessons.\n"
-            f"4. Any notable timestamps or sections worth revisiting.\n\n"
+            f"4. Any notable timestamps or sections worth revisiting.\n"
+            f"5. Comprehensive Notes that cover all aspects of the transcript in a structured and easy-to-read manner along with references (to other quotes/books/authors / articles for each section) .\n\n"
             f"Format the output in well-structured Markdown, including headings, bullet points, and emphasis where appropriate.\n\n"
+            f"Correct the transcript as you see fit as the transcription can have some mistakes.\n\n"
             f"Here is the transcript:\n\n{transcript_text}")
 
 if __name__ == '__main__':
