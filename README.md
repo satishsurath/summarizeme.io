@@ -17,6 +17,7 @@ All transcripts and summaries are stored in a local folder structure. This proje
 6. **No Database**: All data stored on disk.
 
 ## Folder Structure
+```
 my_youtube_transcript_summarizer/
 ├─ app.py
 ├─ youtube_utils.py
@@ -46,6 +47,7 @@ my_youtube_transcript_summarizer/
 ├─ index.js
 ├─ status.js
 └─ videos.js
+```
 
 ## Requirements
 - Python 3.10+
@@ -61,11 +63,17 @@ my_youtube_transcript_summarizer/
 
 2. Set up a virtual environment:
 
+**For Macs:**
 ```
 python3 -m venv venv
 source venv/bin/activate
 ```
 
+**For Windows:**
+```
+python3 -m venv venv
+. venv/Scripts/activate
+```
 
 3. Install dependencies:
 
