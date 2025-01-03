@@ -70,6 +70,7 @@ source venv/bin/activate
 ```
 
 **For Windows:**
+For the first time:
 ```
 python3 -m venv venv
 . venv/Scripts/activate
@@ -90,7 +91,16 @@ OPENAI_API_KEY=your-openai-key
 
 4. Run the app:
 
+**For Macs:**
 ```
+source venv/bin/activate
+flask run
+```
+
+**For Windows:**
+For the first time:
+```
+. venv/Scripts/activate
 flask run
 ```
 
@@ -113,9 +123,3 @@ Usage
 	5.	Select Summarize (using either OpenAI or Ollama) and track progress.
 	6.	Summaries are saved as .md files in the appropriate folder.
 
-Deployment to Azure App Services
-	1.	Create a Python 3.10 Web App in Azure.
-	2.	Configure Environment Variables under App Settings:
-	•	OPENAI_API_KEY = your key
-	3.	Deploy via GitHub Actions or az webapp up.
-	4.	Persistent Storage on Azure is trickier; you may need to mount a persistent volume or switch to Azure Blob Storage. For demonstration, local file storage should work but can be ephemeral unless configured otherwise.
