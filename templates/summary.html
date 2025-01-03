@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Channel: {{ channel_id }}</p>
+<p>Video ID: {{ video_id }}</p>
+<p>Method: {{ method }}</p>
+<p>Uploaded on: {{ upload_date }}</p>
+
+<hr />
+
+{% if summary_html %}
+<h2>Summary</h2>
+<div>
+  {{ summary_html|safe }}
+</div>
+{% else %}
+{% if method != 'transcript' %}
+  <p><em>No summary found.</em></p>
+{% endif %}
+{% endif %}
+
+<hr />
+
+<h2>Original Transcript</h2>
+
+<details>
+  <summary>Transcript (With Timestamps)</summary>
+  <pre style="white-space: pre-wrap;">{{ transcript_with_ts }}</pre>
+</details>
+
+<details style="margin-top:1em;">
+  <summary>Transcript (No Timestamps)</summary>
+  <pre style="white-space: pre-wrap;">{{ transcript_no_ts }}</pre>
+</details>
+
+{% endblock %}

@@ -1,162 +1,291 @@
 import os
-import re
-import logging
-import subprocess
 import json
-from flask import Flask, request, jsonify, render_template
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from youtube_transcript_api import YouTubeTranscriptApi
-import openai
+import threading
+import logging
+from flask import Flask, request, jsonify, render_template, abort
+import markdown
+
+from youtube_utils import download_channel_transcripts, list_downloaded_videos
+from openai_summarizer import summarize_transcript_openai
+from ollama_summarizer import summarize_transcript_ollama
+
+app = Flask(__name__)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__, static_folder='static', template_folder='templates')
+# In-memory storage for statuses (for demo). 
+# For production, use a database or a caching layer (Redis).
+download_statuses = {}
+summarize_statuses = {}
 
-# Rate Limiter
-limiter = Limiter(
-    key_func=get_remote_address,
-    app=app,
-    default_limits=["10 per minute"]
-)
+DATA_DIR = "data/channels"  # Base directory for channel data
 
-@app.route('/', methods=['GET'])
+
+@app.route('/')
 def index():
+    """
+    Main page: form to enter a channel URL (or a video from that channel).
+    Also lists already downloaded channels as links.
+    """
     return render_template('index.html')
 
-@app.route('/history', methods=['GET'])
-def history_page():
-    return render_template('history.html')
 
-@app.route('/api/transcript', methods=['POST'])
-@limiter.limit("10 per minute")
-def get_transcript():
+@app.route('/status')
+def status_page():
+    """
+    Basic page to show status progress.
+    """
+    return render_template('status.html')
+
+
+@app.route('/videos/<channel_id>')
+def videos_page(channel_id):
+    """
+    Paginated video list for a specific channel.
+    The user can sort, filter, and initiate summarization from here.
+    """
+    return render_template('videos.html', channel_id=channel_id)
+
+
+@app.route('/api/channel/start', methods=['POST'])
+def api_channel_start():
+    """
+    Start downloading transcripts for the entire channel.
+    Expects JSON: { "channel_url": "https://www.youtube.com/..." }
+    """
     data = request.get_json()
-    if not data or 'youtube_url' not in data:
-        return jsonify({"status": "error", "message": "youtube_url required"}), 400
+    if not data or 'channel_url' not in data:
+        return jsonify({"status": "error", "message": "No channel_url provided"}), 400
 
-    youtube_url = data['youtube_url']
-    if not is_valid_youtube_url(youtube_url):
-        return jsonify({"status": "error", "message": "Invalid YouTube URL"}), 400
+    channel_url = data['channel_url']
+    # Generate a unique task ID for tracking 
+    task_id = f"dl_{len(download_statuses)+1}"
 
-    video_id = extract_video_id(youtube_url)
-    if not video_id:
-        return jsonify({"status": "error", "message": "Could not extract video ID"}), 400
+    download_statuses[task_id] = {
+        "status": "in_progress",
+        "processed": 0,
+        "total": 0,
+        "errors": []
+    }
 
-    # Get video metadata using yt-dlp (title, upload date)
-    try:
-        metadata = get_video_metadata(youtube_url)
-        title = metadata.get("title", "Unknown Title")
-        upload_date = metadata.get("upload_date", "Unknown Date")
-    except Exception as e:
-        logger.error(f"Error getting metadata: {e}")
-        return jsonify({"status": "error", "message": "Could not retrieve video metadata."}), 500
-
-    # Fetch transcript using YouTubeTranscriptApi
-    try:
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-        transcript_data = None
+    def run_download():
         try:
-            transcript_data = transcript_list.find_transcript(['en']).fetch()
-        except:
-            # If no English transcript found, pick the first available
-            for t in transcript_list:
-                transcript_data = t.fetch()
-                if transcript_data:
-                    break
+            download_channel_transcripts(channel_url, download_statuses[task_id])
+            download_statuses[task_id]["status"] = "completed"
+        except Exception as e:
+            logger.error(f"Error in channel download: {e}")
+            download_statuses[task_id]["status"] = "failed"
+            download_statuses[task_id]["errors"].append(str(e))
 
-        if not transcript_data:
-            return jsonify({"status": "error", "message": "No transcript available."}), 404
+    # Background thread for the download
+    thread = threading.Thread(target=run_download)
+    thread.start()
 
-        structured_transcript = [
-            {
-                "text": item["text"],
-                "start": item["start"],
-                "duration": item.get("duration", 0)
-            } for item in transcript_data
-        ]
+    return jsonify({"status": "initiated", "task_id": task_id})
 
-        return jsonify({
-            "status": "success",
-            "video_id": video_id,
-            "title": title,
-            "upload_date": upload_date,
-            "transcript": structured_transcript
-        })
-    except Exception as e:
-        logger.error(f"Error retrieving transcript: {e}")
-        return jsonify({"status": "error", "message": "Could not retrieve transcript."}), 500
 
-@app.route('/api/analyze', methods=['POST'])
-@limiter.limit("10 per minute")
-def analyze_transcript():
+@app.route('/api/channel/status/<task_id>', methods=['GET'])
+def api_channel_status(task_id):
+    """
+    Returns the status of an ongoing channel download process.
+    """
+    status = download_statuses.get(task_id)
+    if not status:
+        return jsonify({"status": "error", "message": "Invalid task ID"}), 404
+    return jsonify(status)
+
+
+@app.route('/api/videos/<channel_id>', methods=['GET'])
+def api_get_videos(channel_id):
+    """
+    List the downloaded videos for a channel in a paginated fashion.
+    Query params:
+      - page (int)
+      - page_size (int)
+      - sort_by (str) => "title" or "date"
+      - filter (str) => partial match on title
+    """
+    page = int(request.args.get('page', 1))
+    page_size = 100
+    sort_by = request.args.get('sort_by', 'title')  # or 'date'
+    filter_str = request.args.get('filter', '')
+
+    videos = list_downloaded_videos(channel_id)
+    # For each video, check if openai/ollama summary exist
+    for v in videos:
+        vid = v["video_id"]
+        openai_path = os.path.join(DATA_DIR, channel_id, "summaries_openai", f"{vid}.md")
+        ollama_path = os.path.join(DATA_DIR, channel_id, "summaries_ollama", f"{vid}.md")
+        v["openai_summary_exists"] = os.path.exists(openai_path)
+        v["ollama_summary_exists"] = os.path.exists(ollama_path)
+
+    # Apply filter
+    if filter_str:
+        filter_lower = filter_str.lower()
+        videos = [v for v in videos if filter_lower in v['title'].lower()]
+
+    # Sort
+    if sort_by == 'title':
+        videos.sort(key=lambda x: x['title'])
+    elif sort_by == 'date':
+        videos.sort(key=lambda x: x['upload_date'], reverse=True)
+
+    total = len(videos)
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    paginated = videos[start_idx:end_idx]
+
+    return jsonify({
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "videos": paginated
+    })
+
+
+@app.route('/api/summarize', methods=['POST'])
+def api_summarize():
+    """
+    Summarize one or more videos' transcripts using either OpenAI or Ollama.
+    Expects JSON:
+    {
+      "channel_id": "...",
+      "video_ids": ["id1", "id2", ...],
+      "method": "openai" or "ollama"
+    }
+    """
     data = request.get_json()
-    required_fields = ['transcript', 'video_id', 'title', 'upload_date', 'openai_api_key']
-    if any(field not in data for field in required_fields):
-        return jsonify({"status": "error", "message": "Missing required fields (transcript, video_id, title, upload_date, openai_api_key)"}), 400
+    if not all(k in data for k in ("channel_id", "video_ids", "method")):
+        return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
-    transcript = data['transcript']
-    title = data['title']
-    upload_date = data['upload_date']
-    openai_api_key = data['openai_api_key']
+    channel_id = data['channel_id']
+    video_ids = data['video_ids']
+    method = data['method']
 
-    # Set the provided key for this request
-    openai.api_key = openai_api_key
+    task_id = f"sum_{len(summarize_statuses)+1}"
+    summarize_statuses[task_id] = {
+        "status": "in_progress",
+        "processed": 0,
+        "total": len(video_ids),
+        "errors": []
+    }
 
-    analysis_type = data.get('analysis_type', 'detailed_summary')
-    transcript_text = "\n".join([t['text'] for t in transcript])
-    prompt = generate_prompt(title, upload_date, transcript_text, analysis_type)
+    def run_summarize():
+        try:
+            for vid in video_ids:
+                # Summarize each transcript
+                if method == "openai":
+                    summarize_transcript_openai(channel_id, vid)
+                else:
+                    summarize_transcript_ollama(channel_id, vid)
+                summarize_statuses[task_id]["processed"] += 1
+            summarize_statuses[task_id]["status"] = "completed"
+        except Exception as e:
+            logger.error(f"Error in summarization: {e}")
+            summarize_statuses[task_id]["status"] = "failed"
+            summarize_statuses[task_id]["errors"].append(str(e))
 
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",  # Using GPT-4 model
-            messages=[{"role": "system", "content": "You are a helpful assistant, skilled in summarizing and structuring video content."},
-                      {"role": "user", "content": prompt}],
-            max_tokens=2000,
-            temperature=0.7
-        )
-        content = response.choices[0].message.content.strip()
-        return jsonify({"status": "success", "analysis_markdown": content})
-    except Exception as e:
-        logger.error(f"OpenAI API error: {e}")
-        return jsonify({"status": "error", "message": "Could not analyze the transcript. Check your OpenAI key."}), 500
+    thread = threading.Thread(target=run_summarize)
+    thread.start()
 
-def is_valid_youtube_url(url):
-    youtube_regex = r'(https?://)?(www\.)?(youtube\.com|youtu\.?be)/.+'
-    return re.match(youtube_regex, url) is not None
+    return jsonify({"status": "initiated", "task_id": task_id})
 
-def extract_video_id(url):
-    import urllib.parse as up
-    u = up.urlparse(url)
-    if 'youtube.com' in u.netloc:
-        q = up.parse_qs(u.query)
-        return q.get('v', [None])[0]
-    elif 'youtu.be' in u.netloc:
-        return u.path.strip('/')
-    return None
 
-def get_video_metadata(url):
-    cmd = ["yt-dlp", "--dump-single-json", url]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        logger.error(f"yt-dlp error: {result.stderr}")
-        raise Exception("yt-dlp failed")
-    data = json.loads(result.stdout)
-    return data
+@app.route('/api/summarize/status/<task_id>', methods=['GET'])
+def api_summarize_status(task_id):
+    """
+    Returns summarization progress.
+    """
+    status = summarize_statuses.get(task_id)
+    if not status:
+        return jsonify({"status": "error", "message": "Invalid task ID"}), 404
+    return jsonify(status)
 
-def generate_prompt(title, upload_date, transcript_text, analysis_type):
-    return (f"The following is a transcript of a YouTube video titled '{title}', uploaded on {upload_date}. "
-            f"Please analyze and summarize this video transcript. Provide the following in your response:\n\n"
-            f"1. A concise summary of the entire content.\n"
-            f"2. Key topics or themes covered in the video.\n"
-            f"3. Important takeaways or lessons.\n"
-            f"4. Any notable timestamps or sections worth revisiting.\n"
-            f"5. Comprehensive Notes that cover all aspects of the transcript in a structured and easy-to-read manner along with references (to other quotes/books/authors / articles for each section) .\n\n"
-            f"Format the output in well-structured Markdown, including headings, bullet points, and emphasis where appropriate.\n\n"
-            f"Correct the transcript as you see fit as the transcription can have some mistakes.\n\n"
-            f"Here is the transcript:\n\n{transcript_text}")
+
+@app.route('/api/channels', methods=['GET'])
+def api_list_channels():
+    """
+    Lists the already downloaded channels by checking subdirectories in data/channels/.
+    Returns JSON array of channel_ids.
+    """
+    if not os.path.exists(DATA_DIR):
+        return jsonify([])
+
+    all_dirs = [
+        d for d in os.listdir(DATA_DIR)
+        if os.path.isdir(os.path.join(DATA_DIR, d)) and not d.startswith(".")
+    ]
+    return jsonify(all_dirs)
+
+
+@app.route('/summaries/<channel_id>/<method>/<video_id>')
+def view_summary(channel_id, method, video_id):
+    """
+    Displays the summary (if openai/ollama) + original transcript in summary.html.
+    The transcript is shown in two collapsible sections:
+      1) With timestamps
+      2) Without timestamps
+    If method='transcript', we skip the .md file loading.
+    """
+    # 1. Load the transcript JSON
+    transcript_file = os.path.join(DATA_DIR, channel_id, "transcripts", f"{video_id}.json")
+    if not os.path.exists(transcript_file):
+        abort(404, f"Transcript file not found for video {video_id}")
+
+    with open(transcript_file, "r", encoding="utf-8") as f:
+        vid_data = json.load(f)
+    # vid_data contains "title", "upload_date", "transcript" (list of items)
+
+    # Build human-readable transcript variants
+    transcripts = vid_data.get("transcript", [])
+    transcript_text_with_timestamps = []
+    transcript_text_no_timestamps = []
+
+    for item in transcripts:
+        start = item.get("start", 0)
+        dur = item.get("duration", 0)
+        text = item.get("text", "")
+        # with timestamps
+        line_with_ts = f"[{start:.2f}s - {dur:.2f}s] {text}"
+        transcript_text_with_timestamps.append(line_with_ts)
+        # without timestamps
+        transcript_text_no_timestamps.append(text)
+
+    # Join them
+    transcript_with_ts_joined = "\n".join(transcript_text_with_timestamps)
+    transcript_no_ts_joined = "\n".join(transcript_text_no_timestamps)
+
+    # 2. If method is "openai" or "ollama", load the summary file
+    summary_html = None
+    if method in ("openai", "ollama"):
+        summary_file = os.path.join(DATA_DIR, channel_id, f"summaries_{method}", f"{video_id}.md")
+        if os.path.exists(summary_file):
+            with open(summary_file, "r", encoding="utf-8") as sf:
+                md_text = sf.read()
+            summary_html = markdown.markdown(md_text)
+        else:
+            summary_html = "<em>No summary found for this method.</em>"
+    elif method == "transcript":
+        # no summary needed
+        summary_html = None
+    else:
+        abort(400, "Invalid method. Must be 'openai', 'ollama', or 'transcript'")
+
+    return render_template(
+        "summary.html",
+        channel_id=channel_id,
+        video_id=video_id,
+        method=method,
+        title=vid_data.get("title", "Untitled"),
+        upload_date=vid_data.get("upload_date", "UnknownDate"),
+        summary_html=summary_html,
+        transcript_with_ts=transcript_with_ts_joined,
+        transcript_no_ts=transcript_no_ts_joined
+    )
+
 
 if __name__ == '__main__':
+    # For local dev
     app.run(debug=True, host='0.0.0.0', port=5000)

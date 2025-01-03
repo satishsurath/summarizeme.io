@@ -190,3 +190,6 @@ sessions/*
 logs/*
 
 .DS_Store
+
+# Ignore the data
+data/*

@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>Channel Videos</h1>
+<p>Channel ID: {{ channel_id }}</p>
+
+<div>
+  <label for="filterInput">Filter Title:</label>
+  <input type="text" id="filterInput" />
+  <label for="sortSelect">Sort By:</label>
+  <select id="sortSelect">
+    <option value="title">Title</option>
+    <option value="date">Upload Date</option>
+  </select>
+  <button id="applyFilterBtn">Apply</button>
+</div>
+
+<div id="videosList"></div>
+
+<div style="margin-top:20px;">
+  <button id="prevPageBtn">Previous</button>
+  <span id="pageInfo"></span>
+  <button id="nextPageBtn">Next</button>
+</div>
+
+<div>
+  <h3>Summarize Selected Videos</h3>
+  <select id="methodSelect">
+    <option value="openai">OpenAI ChatGPT 4o</option>
+    <option value="ollama">Ollama LLaMA 3.2</option>
+  </select>
+  <button id="summarizeBtn">Summarize</button>
+
+  <div id="summaryStatus"></div>
+</div>
+
+<script>
+  const channelId = "{{ channel_id }}";
+</script>
+
+<!-- We can use marked.min.js for additional front-end Markdown usage if desired -->
+<script src="{{ url_for('static', filename='marked.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/videos.js') }}"></script>
+{% endblock %}
