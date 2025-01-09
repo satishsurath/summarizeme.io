@@ -1,22 +1,34 @@
-- name: Check out repository
-  uses: actions/checkout@v3
+name: CI Pipeline
 
-- name: Set up Python
-  uses: actions/setup-python@v4
-  with:
-    python-version: '3.10'
+on:
+  push:
+    branches:
+      - main
 
-- name: Install dependencies
-  run: |
-    pip install --upgrade pip
-    pip install -r requirements.txt
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
 
-- name: Deploy code & restart service
-  run: |
-    # e.g. copy your updated code to /home/runner-user/app
-    cp -R . /home/runner-user/app
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    # Now restart the systemd service
-    sudo systemctl stop myflaskapp || true
-    sudo systemctl start myflaskapp
-    # or: sudo systemctl restart myflaskapp
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Deploy code & restart service
+        run: |
+          # e.g. copy your updated code to /home/runner-user/app
+          cp -R . /home/runner-user/app
+
+          # Now restart the systemd service
+          sudo systemctl stop myflaskapp || true
+          sudo systemctl start myflaskapp
+          # or: sudo systemctl restart myflaskapp
