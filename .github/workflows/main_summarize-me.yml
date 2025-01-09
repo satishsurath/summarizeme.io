@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
             !venv/
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build
     environment:
       name: 'Production'
@@ -61,18 +61,4 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_118DC95C8FFB4D8ABB06B07254C6E47A }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_D92F26A5D8DE4F8988CFFD1092DF2CB5 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_858855F900954CA5B0FDB2BE42D81819 }}
-
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
-        with:
-          app-name: 'summarize-me'
-          slot-name: 'Production'
-          
+    
