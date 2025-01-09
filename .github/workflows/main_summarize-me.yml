@@ -4,13 +4,9 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  build-and-test:
-    # Use a self-hosted runner
+  build-and-deploy:
     runs-on: self-hosted
     
     steps:
@@ -27,3 +23,18 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Run tests
+        run: |
+          pip install pytest
+          pytest
+
+      - name: Deploy (run Flask in background)
+        run: |
+          # Example: kill any existing process listening on the port
+          # to avoid multiple instances if you push repeatedly
+          lsof -t -i :8000 | xargs -r kill -9 || true
+
+          # Now start your Flask app on port 8000 in background
+          # Customize the port with an environment variable or variable
+          # from your repo settings if you like
+          nohup flask run --host=0.0.0.0 --port=8000 > flask.log 2>&1 &
