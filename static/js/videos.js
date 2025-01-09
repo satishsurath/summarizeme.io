@@ -95,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <table>
           <thead>
             <tr>
-              <th>Select</th>
+              <th><input type="checkbox" id="selectAll" /> Select</th>
               <th>Title</th>
               <th>Date</th>
               <th>OpenAI Summary</th>
@@ -120,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
         html += `
           <tr>
-            <td><input type="checkbox" id="check_${v.video_id}" /></td>
+            <td><input type="checkbox" class="videoCheckbox" id="check_${v.video_id}" /></td>
             <td>${v.title}</td>
             <td>${v.upload_date}</td>
             <td>${openaiLink}</td>
@@ -131,5 +131,15 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       html += "</tbody></table>";
       videosList.innerHTML = html;
+        // Add event listener for "Select All" checkbox
+  const selectAllCheckbox = document.getElementById("selectAll");
+  const videoCheckboxes = document.querySelectorAll(".videoCheckbox");
+
+  selectAllCheckbox.addEventListener("change", () => {
+    const isChecked = selectAllCheckbox.checked;
+    videoCheckboxes.forEach(checkbox => {
+      checkbox.checked = isChecked;
+    });
+  });
     }
   });
