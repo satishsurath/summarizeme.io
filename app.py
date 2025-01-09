@@ -29,7 +29,7 @@ summarize_statuses = {}
 DATA_DIR = os.getenv("DATA_DIR")
 if DATA_DIR is None:
     DATA_DIR = "data/channels"  # Base directory for channel data
-
+print(f"DATA_DIR: {DATA_DIR}")
 
 @app.route('/')
 def index():
