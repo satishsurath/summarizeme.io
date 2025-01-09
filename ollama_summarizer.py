@@ -10,7 +10,9 @@ client = ollama.Client(
 
 
 
-DATA_DIR = "data/channels"
+DATA_DIR = os.getenv("DATA_DIR")
+if DATA_DIR is None:
+    DATA_DIR = "data/channels"  # Base directory for channel data
 
 
 

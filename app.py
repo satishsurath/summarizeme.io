@@ -26,7 +26,9 @@ print(f"ollama_host: {ollama_host}")
 download_statuses = {}
 summarize_statuses = {}
 
-DATA_DIR = "data/channels"  # Base directory for channel data
+DATA_DIR = os.getenv("DATA_DIR")
+if DATA_DIR is None:
+    DATA_DIR = "data/channels"  # Base directory for channel data
 
 
 @app.route('/')

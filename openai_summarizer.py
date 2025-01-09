@@ -4,7 +4,9 @@ import openai
 
 openai.api_key = os.getenv("OPENAI_API_KEY", "")
 
-DATA_DIR = "data/channels"
+DATA_DIR = os.getenv("DATA_DIR")
+if DATA_DIR is None:
+    DATA_DIR = "data/channels"  # Base directory for channel data
 
 def summarize_transcript_openai(channel_id: str, video_id: str):
     """
