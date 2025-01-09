@@ -1,33 +1,22 @@
-name: CI Pipeline
+- name: Check out repository
+  uses: actions/checkout@v3
 
-on:
-  push:
-    branches:
-      - main
+- name: Set up Python
+  uses: actions/setup-python@v4
+  with:
+    python-version: '3.10'
 
-jobs:
-  build-and-deploy:
-    runs-on: self-hosted
-    
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
+- name: Install dependencies
+  run: |
+    pip install --upgrade pip
+    pip install -r requirements.txt
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+- name: Deploy code & restart service
+  run: |
+    # e.g. copy your updated code to /home/runner-user/app
+    cp -R . /home/runner-user/app
 
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-
-
-
-      - name: Deploy (run Flask in background)
-        run: |
-          # Now start your Flask app on port 8000 in background
-          # Customize the port with an environment variable or variable
-          # from your repo settings if you like
-          flask run --host=0.0.0.0 --port=8000 > flask.log 2>&1 &
+    # Now restart the systemd service
+    sudo systemctl stop myflaskapp || true
+    sudo systemctl start myflaskapp
+    # or: sudo systemctl restart myflaskapp
