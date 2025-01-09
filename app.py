@@ -4,6 +4,7 @@ import threading
 import logging
 from flask import Flask, request, jsonify, render_template, abort
 import markdown
+from dotenv import load_dotenv
 
 from youtube_utils import download_channel_transcripts, list_downloaded_videos
 from openai_summarizer import summarize_transcript_openai
@@ -14,6 +15,11 @@ app = Flask(__name__)
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+#Read the env file
+load_dotenv()
+ollama_host = os.getenv("REMOTE_OLLAMA_HOST")
+print(f"ollama_host: {ollama_host}")
 
 # In-memory storage for statuses (for demo). 
 # For production, use a database or a caching layer (Redis).

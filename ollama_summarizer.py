@@ -2,7 +2,17 @@ import os
 import json
 import ollama
 
+ollama_host = os.getenv("REMOTE_OLLAMA_HOST")
+print(f"ollama_host: {ollama_host}")
+
+client = ollama.Client(
+  host='http://'+ ollama_host+':11434')
+
+
+
 DATA_DIR = "data/channels"
+
+
 
 def summarize_transcript_ollama(
     channel_id: str,
@@ -42,7 +52,7 @@ Transcript:
 """
 
     # 4. Ollama call
-    response = ollama.chat(
+    response = client.chat(
         model=model,
         messages=[{"role": "user", "content": prompt}]
     )
