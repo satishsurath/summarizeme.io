@@ -7,7 +7,10 @@ from pytube import YouTube
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = "data/channels"
+DATA_DIR = os.getenv("DATA_DIR")
+if DATA_DIR is None:
+    DATA_DIR = "data/channels"  # Base directory for channel data
+
 
 def download_channel_transcripts(channel_url, status_dict):
     """
