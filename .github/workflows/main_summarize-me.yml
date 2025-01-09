@@ -27,11 +27,7 @@ jobs:
 
       - name: Deploy (run Flask in background)
         run: |
-          # Example: kill any existing process listening on the port
-          # to avoid multiple instances if you push repeatedly
-          lsof -t -i :8000 | xargs -r kill -9 || true
-
           # Now start your Flask app on port 8000 in background
           # Customize the port with an environment variable or variable
           # from your repo settings if you like
-          nohup flask run --host=0.0.0.0 --port=8000 > flask.log 2>&1 &
+          flask run --host=0.0.0.0 --port=8000 > flask.log 2>&1 &
