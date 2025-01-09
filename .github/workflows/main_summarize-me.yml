@@ -26,7 +26,7 @@ jobs:
       - name: Deploy code & restart service
         run: |
           # e.g. copy your updated code to /home/runner-user/app
-          cp -R . /home/runner-user/app
+          #cp -R . /home/runner-user/app
 
           # Now restart the systemd service
           sudo systemctl stop myflaskapp || true
