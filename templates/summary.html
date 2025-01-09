@@ -9,7 +9,13 @@
 <hr />
 
 {% if summary_html %}
-<h2>Summary</h2>
+<h2>Summary
+  <svg onclick="copyToClipboard('summary-html')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg>
+</h2>
+
+<div id="summary-html" style="display: none;">
+  {{ summary_html|safe }}
+</div>
 <div>
   {{ summary_html|safe }}
 </div>
@@ -23,14 +29,55 @@
 
 <h2>Original Transcript</h2>
 
+<h4>Transcript (With Timestamps)
+
+    <svg onclick="copyToClipboard('transcript-with-ts')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg>
+
+
+</h4>
 <details>
-  <summary>Transcript (With Timestamps)</summary>
-  <pre style="white-space: pre-wrap;">{{ transcript_with_ts }}</pre>
+  <!--  Print only the first line of {{ transcript_with_ts }}-->
+  <summary> {{ transcript_with_ts.split('\n')[0] }}</summary>
+  <pre style="white-space: pre-wrap;" id="transcript-with-ts">{{ transcript_with_ts }}</pre>
 </details>
 
+
+<br>
+<br>
+<h4>Transcript (No Timestamps)
+
+  <svg onclick="copyToClipboard('transcript-no-ts')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg>
+
+
+</h4>
 <details style="margin-top:1em;">
-  <summary>Transcript (No Timestamps)</summary>
-  <pre style="white-space: pre-wrap;">{{ transcript_no_ts }}</pre>
+  <summary> {{ transcript_no_ts.split('\n')[0] }}</summary>
+  <pre style="white-space: pre-wrap;" id="transcript-no-ts">{{ transcript_no_ts }}</pre>
 </details>
+<script>
+  /**
+   * Copies the content of an element with the given ID to the clipboard.
+   * @param {string} elementId - The ID of the element whose content is to be copied.
+   */
+  function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      alert('Element not found.');
+      return;
+    }
 
+    const content = element.innerText || element.textContent;
+
+    navigator.clipboard.writeText(content).then(
+      function () {
+        //alert('Content copied to clipboard!');
+        console.log('Content copied to clipboard:', content);
+      },
+      function (err) {
+        alert('Failed to copy content: ', err);
+        console.error('Failed to copy content:', err);
+      }
+    );
+  }
+</script>
 {% endblock %}
