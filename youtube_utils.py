@@ -15,11 +15,20 @@ if DATA_DIR is None:
 def download_channel_transcripts(channel_url, status_dict):
     """
     1. Determine channel_id.
-    2. List all video_ids from the channel.
-    3. For each video, download transcript to local json file.
-    4. Update status_dict to reflect progress (including errors).
+    2. List all video_ids from the channel (fast).
+    3. For each video, fix unknown upload_date by fetching detailed metadata.
+    4. For each video, download transcript to local json file.
+    5. Update status_dict to reflect progress (including errors).
     """
     channel_id, videos = get_channel_and_videos(channel_url)
+
+    # Fix any "UnknownDate" by making a single-video metadata query
+    for v in videos:
+        if v["upload_date"] == "UnknownDate":
+            real_date = get_upload_date_for_video(v["video_id"])
+            if real_date:
+                v["upload_date"] = real_date
+
     channel_path = os.path.join(DATA_DIR, channel_id)
     os.makedirs(os.path.join(channel_path, "transcripts"), exist_ok=True)
     os.makedirs(os.path.join(channel_path, "summaries_openai"), exist_ok=True)
@@ -59,12 +68,14 @@ def download_channel_transcripts(channel_url, status_dict):
     logger.info(f"Finished processing channel '{channel_id}'. "
                 f"Processed {processed_count} out of {total_videos} videos.")
 
+
 def get_channel_and_videos(channel_url):
     """
-    Use yt-dlp to list all videos from the channel (or playlist).
+    Use yt-dlp to list all videos from the channel (or playlist) quickly.
     Returns:
       channel_id (str): a unique ID or playlist ID
       videos (list of dict): each dict has "video_id", "title", "upload_date"
+                            (may be 'UnknownDate' if yt-dlp doesn't provide it)
     """
     cmd = ["yt-dlp", "--flat-playlist", "--dump-single-json", channel_url]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -80,6 +91,7 @@ def get_channel_and_videos(channel_url):
     for entry in entries:
         vid_id = entry.get("id")
         vid_title = entry.get("title", "Untitled")
+        # The below might be missing or set to "UnknownDate" with --flat-playlist
         upload_date = entry.get("upload_date", "UnknownDate")
         videos.append({
             "video_id": vid_id,
@@ -90,11 +102,42 @@ def get_channel_and_videos(channel_url):
     logger.info(f"Found {len(videos)} videos for channel/playlist '{channel_id}' using URL: {channel_url}")
     return channel_id, videos
 
+
+def get_upload_date_for_video(video_id):
+    """
+    Attempt to retrieve the actual upload date for a single video via:
+      1) yt-dlp --dump-single-json https://www.youtube.com/watch?v=VIDEO_ID
+      2) fallback to pytube
+    Return 'YYYY-MM-DD' or None if not found.
+    """
+    # Try yt-dlp single-video metadata
+    cmd = ["yt-dlp", "--dump-single-json", f"https://www.youtube.com/watch?v={video_id}"]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode == 0:
+        try:
+            info = json.loads(result.stdout)
+            raw_date = info.get("upload_date")  # typically "YYYYMMDD"
+            if raw_date and len(raw_date) == 8:
+                return f"{raw_date[0:4]}-{raw_date[4:6]}-{raw_date[6:8]}"
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback to pytube
+    try:
+        yt = YouTube(f"https://www.youtube.com/watch?v={video_id}")
+        if yt.publish_date:
+            return yt.publish_date.strftime("%Y-%m-%d")
+    except Exception:
+        pass
+
+    return None
+
+
 def get_transcript_for_video(video_id):
     """
     Attempt to retrieve the transcript via youtube_transcript_api (preferring English).
     Fallback to pytube if not found.
-    Returns a list of dicts: [{ "text":..., "start":..., "duration":... }, ...]
+    Returns a list of dicts: [ { "text":..., "start":..., "duration":... }, ... ]
     Raises an Exception if no transcript is available.
     """
     try:
@@ -113,9 +156,11 @@ def get_transcript_for_video(video_id):
         srt_captions = caption.generate_srt_captions()
         return parse_srt(srt_captions)
 
+
 def parse_srt(srt_text):
     """
-    Parse SRT text into a list of dicts: [{"text":..., "start":..., "duration":...}, ...].
+    Parse SRT text into a list of dicts: 
+        [ {"text":..., "start":..., "duration":...}, ... ].
     """
     lines = srt_text.split('\n')
     entries = []
@@ -145,13 +190,16 @@ def parse_srt(srt_text):
         i += 1
     return entries
 
+
 def srt_time_to_seconds(t_str):
     """
     Convert SRT time string 'HH:MM:SS,mmm' to total seconds as float.
+    E.g. "00:01:23,456" -> 83.456
     """
     h, m, s_milli = t_str.split(':')
     s, ms = s_milli.split(',')
-    return int(h)*3600 + int(m)*60 + float(s) + float(ms)/1000.0
+    return int(h) * 3600 + int(m) * 60 + float(s) + float(ms) / 1000.0
+
 
 def list_downloaded_videos(channel_id):
     """
