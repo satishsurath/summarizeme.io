@@ -4,6 +4,7 @@ import threading
 import logging
 from flask import Flask, request, jsonify, render_template, abort
 import markdown
+import re # used for renaming the channel folder 
 from dotenv import load_dotenv
 
 from youtube_utils import download_channel_transcripts, list_downloaded_videos
@@ -227,6 +228,44 @@ def api_list_channels():
     ]
     return jsonify(all_dirs)
 
+@app.route('/api/channels/rename', methods=['POST'])
+def api_rename_channel():
+    """
+    Renames a channel folder on disk. Expects JSON:
+    { "old_name": "...", "new_name": "..." }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": "error", "message": "No data provided"}), 400
+
+    old_name = data.get("old_name", "").strip()
+    new_name = data.get("new_name", "").strip()
+
+    if not old_name or not new_name:
+        return jsonify({"status": "error", "message": "old_name and new_name are required"}), 400
+
+    old_dir = os.path.join(DATA_DIR, old_name)
+    if not os.path.exists(old_dir):
+        return jsonify({"status": "error", "message": "Old channel directory not found"}), 404
+
+    # Sanitize new_name for Ubuntu (example: only allow alphanumeric, underscores, hyphens, spaces).
+    safe_new_name = re.sub(r"[^a-zA-Z0-9_\-\s]", "", new_name)
+    if not safe_new_name:
+        return jsonify({"status": "error", "message": "Invalid characters in new_name"}), 400
+
+    new_dir = os.path.join(DATA_DIR, safe_new_name)
+
+    # Check if new_name already exists
+    if os.path.exists(new_dir):
+        return jsonify({"status": "error", "message": "A channel with the new name already exists"}), 400
+
+    try:
+        os.rename(old_dir, new_dir)
+    except Exception as e:
+        logger.error(f"Error renaming channel: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    return jsonify({"status": "ok", "old_name": old_name, "new_name": safe_new_name})
 
 @app.route('/api/all-tasks', methods=['GET'])
 def api_all_tasks():

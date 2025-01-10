@@ -15,64 +15,7 @@
   <div id="channelList">Loading...</div>
 
 
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const startDownloadBtn = document.getElementById("startDownloadBtn");
-      const channelUrlInput = document.getElementById("channelUrl");
-      const downloadStatus = document.getElementById("downloadStatus");
-      const channelList = document.getElementById("channelList");
 
-      // 1. Start Download
-      startDownloadBtn.addEventListener("click", async () => {
-        const url = channelUrlInput.value.trim();
-        if (!url) {
-          downloadStatus.innerText = "Please enter a URL.";
-          return;
-        }
-
-        downloadStatus.innerText = "Starting download...";
-        try {
-          const res = await fetch("/api/channel/start", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ channel_url: url }),
-          });
-          const data = await res.json();
-          if (data.status === "initiated") {
-            downloadStatus.innerText = `Download initiated. Task ID: ${data.task_id}`;
-          } else {
-            downloadStatus.innerText = `Error: ${data.message}`;
-          }
-        } catch (err) {
-          downloadStatus.innerText = `Error starting download: ${err}`;
-        }
-      });
-
-      // 2. Load Already Downloaded Channels
-      async function loadChannels() {
-        channelList.innerText = "Loading...";
-        try {
-          const res = await fetch("/api/channels");
-          const channels = await res.json();
-          if (!Array.isArray(channels) || channels.length === 0) {
-            channelList.innerText = "No channels found.";
-            return;
-          }
-          // Build a list of links
-          let html = "<ul>";
-          channels.forEach(chId => {
-            html += `<li><a href="/videos/${chId}">${chId}</a></li>`;
-          });
-          html += "</ul>";
-          channelList.innerHTML = html;
-        } catch (err) {
-          channelList.innerText = `Error loading channels: ${err}`;
-        }
-      }
-
-      loadChannels();
-    });
-  </script>
 <script src="{{ url_for('static', filename='marked.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>
 
