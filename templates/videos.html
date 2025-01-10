@@ -1,43 +1,69 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1>Channel Videos</h1>
-<p>Channel ID: {{ channel_id }}</p>
+<div class="container my-4">
+  <h1 class="mb-3">Channel Videos</h1>
+  <p>Channel ID: {{ channel_id }}</p>
 
-<div>
-  <label for="filterInput">Filter Title:</label>
-  <input type="text" id="filterInput" />
-  <label for="sortSelect">Sort By:</label>
-  <select id="sortSelect">
-    <option value="title">Title</option>
-    <option value="date">Upload Date</option>
-  </select>
-  <button id="applyFilterBtn">Apply</button>
+  <!-- Filter & Sort Controls -->
+  <div class="row g-3 align-items-end mb-3">
+    <div class="col-12 col-sm-6 col-md-auto">
+      <label for="filterInput" class="form-label">Filter Title:</label>
+      <input type="text" id="filterInput" class="form-control" />
+    </div>
+    <div class="col-12 col-sm-6 col-md-auto">
+      <label for="sortSelect" class="form-label">Sort By:</label>
+      <select id="sortSelect" class="form-select">
+        <option value="title">Title</option>
+        <option value="date">Upload Date</option>
+      </select>
+    </div>
+    <div class="col-12 col-md-auto">
+      <button id="applyFilterBtn" class="btn btn-primary w-100 w-md-auto">Apply</button>
+    </div>
+  </div>
+
+  <!-- Videos List (table is rendered via JS) -->
+  <!-- Wrap your table in a .table-responsive for horizontal scroll on mobile -->
+  <div id="videosList" class="table-responsive"></div>
+
+  <!-- Pagination Controls -->
+  <div class="row g-3 align-items-center mt-4">
+    <div class="col-auto">
+      <button id="prevPageBtn" class="btn btn-secondary">Previous</button>
+    </div>
+    <div class="col-auto">
+      <span id="pageInfo"></span>
+    </div>
+    <div class="col-auto">
+      <button id="nextPageBtn" class="btn btn-secondary">Next</button>
+    </div>
+  </div>
+
+  <!-- Summarization Section -->
+  <div class="mt-4">
+    <h3>Summarize Selected Videos</h3>
+    <div class="row g-2 mb-3">
+      <div class="col-auto">
+        <label for="methodSelect" class="visually-hidden">Summarization Method</label>
+        <select id="methodSelect" class="form-select">
+          <option value="openai">OpenAI ChatGPT 4o</option>
+          <option value="ollama">Ollama LLaMA 3.2</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button id="summarizeBtn" class="btn btn-success">Summarize</button>
+      </div>
+    </div>
+    <div id="summaryStatus"></div>
+  </div>
 </div>
 
-<div id="videosList"></div>
-
-<div style="margin-top:20px;">
-  <button id="prevPageBtn">Previous</button>
-  <span id="pageInfo"></span>
-  <button id="nextPageBtn">Next</button>
-</div>
-
-<div>
-  <h3>Summarize Selected Videos</h3>
-  <select id="methodSelect">
-    <option value="openai">OpenAI ChatGPT 4o</option>
-    <option value="ollama">Ollama LLaMA 3.2</option>
-  </select>
-  <button id="summarizeBtn">Summarize</button>
-
-  <div id="summaryStatus"></div>
-</div>
-
+<!-- Pass channel_id into your JS -->
 <script>
   const channelId = "{{ channel_id }}";
 </script>
 
-<!-- We can use marked.min.js for additional front-end Markdown usage if desired -->
+<!-- Optional: marked.min.js if you use Markdown on the frontend -->
 <script src="{{ url_for('static', filename='marked.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/videos.js') }}"></script>
 {% endblock %}
