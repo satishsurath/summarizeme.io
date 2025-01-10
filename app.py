@@ -228,6 +228,38 @@ def api_list_channels():
     return jsonify(all_dirs)
 
 
+@app.route('/api/all-tasks', methods=['GET'])
+def api_all_tasks():
+    """
+    Return a list of all tasks (downloads and summaries) in a single JSON array.
+    """
+    all_tasks = []
+
+    # For download tasks
+    for task_id, stat in download_statuses.items():
+        all_tasks.append({
+            "task_id": task_id,
+            "type": "download",
+            "status": stat["status"],
+            "processed": stat["processed"],
+            "total": stat["total"],
+            "errors": stat["errors"]
+        })
+
+    # For summarize tasks
+    for task_id, stat in summarize_statuses.items():
+        all_tasks.append({
+            "task_id": task_id,
+            "type": "summarize",
+            "status": stat["status"],
+            "processed": stat["processed"],
+            "total": stat["total"],
+            "errors": stat["errors"]
+        })
+
+    return jsonify(all_tasks)
+
+
 @app.route('/summaries/<channel_id>/<method>/<video_id>')
 def view_summary(channel_id, method, video_id):
     """

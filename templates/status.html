@@ -1,11 +1,14 @@
 {% extends "layout.html" %}
 {% block content %}
 <h1>Download/Summarization Status</h1>
-<p>Enter your Task ID to see progress:</p>
+<!-- <p>Enter your Task ID to see progress:</p>
 <input type="text" id="taskId" />
-<button id="checkStatusBtn">Check Status</button>
+<button id="checkStatusBtn">Check Status</button> -->
+<h2>All Tasks</h2>
 
-<div id="statusResult"></div>
+<div id="statusResult">
+  <!-- We'll populate this <div> with a table from status.js -->
+</div>
 <script src="{{ url_for('static', filename='marked.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/status.js') }}"></script>
 {% endblock %}
