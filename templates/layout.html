@@ -1,23 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
+  <!-- Ensures mobile responsiveness -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
   <title>{{ title|default("YouTube Channel Summarizer") }}</title>
-      <!-- Bootstrap CSS for responsiveness and modern look -->
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css">
+  
+  <!-- Bootstrap CSS -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css"
+  />
+  <!-- Your custom styles -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
+  <!-- Responsive Navbar -->
   <header>
-    <nav>
-      <a href="{{ url_for('index') }}">Home</a> | 
-      <a href="{{ url_for('status_page') }}">Check Status</a>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="container-fluid">
+        <!-- Brand or Logo -->
+        <a class="navbar-brand" href="{{ url_for('index') }}">
+          Summarizeme
+        </a>
+        <!-- Toggler for mobile view -->
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Navbar links -->
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <!-- Home link -->
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}">
+                Home
+              </a>
+            </li>
+            <!-- Status page link -->
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('status_page') }}">
+                Check Status
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
     </nav>
   </header>
-  <main>
-    {% block content %}{% endblock %}
-  </main>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"></script>
 
+  <!-- Main content area -->
+  <main class="container my-4">
+    <div class="row">
+      <div class="col-12">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </main>
+
+  <!-- Bootstrap JavaScript bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
