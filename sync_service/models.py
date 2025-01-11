@@ -10,6 +10,9 @@ class Video(Base):
     __tablename__ = "videos"
     # We use the YT video_id as a unique string primary key for easy referencing
     video_id = Column(String(50), primary_key=True)
+    # Newly added columns:
+    title = Column(String(512))              # e.g. video title
+    upload_date = Column(String(32))         # e.g. "2023-12-01" or "UnknownDate"    
     transcript_with_ts = Column(Text)
     transcript_no_ts = Column(Text)
     tokens_with_ts = Column(Integer, default=0)

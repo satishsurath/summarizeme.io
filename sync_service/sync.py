@@ -90,6 +90,8 @@ def run_sync():
                         continue
                     
                     video_id = data.get("video_id")
+                    title = data.get("title", "Untitled")
+                    upload_date = data.get("upload_date", "UnknownDate")
                     if not video_id:
                         logger.warning(f"No video_id in {fullpath}, skipping.")
                         continue
@@ -119,6 +121,8 @@ def run_sync():
                         # create new
                         video_obj = Video(
                             video_id=video_id,
+                            title=title,
+                            upload_date=upload_date,
                             transcript_with_ts=transcript_with_ts,
                             transcript_no_ts=transcript_no_ts,
                             tokens_with_ts=tokens_with_ts,
@@ -188,8 +192,10 @@ def run_sync():
                     if not summary_obj:
                         summary_obj = Summary(
                             video_id=video_id,
-                            summary_type=method,
-                            model_name=method,  # or parse from file name if needed
+                            summary_type=method, 
+                            #if openai, model_name="gpt-4", if ollama, model_name="llama3.2"
+                            model_name="gpt-4o" if method == "openai" else "llama3.2",
+                            #model_name=method,  # or parse from file name if needed
                             summary_text=summary_text,
                             tokens_count=tok_count,
                             file_path=summary_path,
