@@ -7,7 +7,7 @@ import logging
 import hashlib
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base, Video, VideoFolder, Summary, SyncJob
+from .models import Base, Video, VideoFolder, Summary, SyncJob
 
 # Optional: for counting tokens (assuming tiktoken usage):
 # pip install tiktoken
