@@ -21,6 +21,12 @@ from sync_service.sync import run_sync  # Contains the run_sync() function
 # Import your new sync function
 from sync_service.embedding_sync import run_embedding_sync
 
+
+
+DB_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/mydb")
+engine = create_engine(DB_URL, echo=False)
+SessionLocal = sessionmaker(bind=engine)
+
 app = Flask(__name__)
 
 # Configure logging
@@ -443,6 +449,8 @@ def view_summary(channel_id, method, video_id):
 
 
 
+
+
 #############################################################################
 # Now define your new routes for embedded-channels, chat-channel, chat-video
 #############################################################################
@@ -450,14 +458,18 @@ def view_summary(channel_id, method, video_id):
 @app.route("/embedded-channels", methods=["GET"])
 def embedded_channels():
     """
-    Renders a page that shows channels that have embedded data.
-    For example, you might query your DB for channels 
-    that appear in the 'videos_embedding' or 'videos' table with embeddings.
+    Renders a page that shows channels/folders that have embedded data.
+    We'll query the 'video_folders' table for all distinct folder_name.
     """
-    # For demonstration, let's say we just pass a static list of channels or 
-    # query from your 'channels' table or from a "SELECT DISTINCT folder_name FROM video_folders".
-    # We'll pass a placeholder list for now:
-    channel_list = ["ChannelA", "ChannelB", "ChannelC"]
+    session = SessionLocal()
+    try:
+        # SELECT DISTINCT folder_name FROM video_folders
+        folder_rows = session.query(VideoFolder.folder_name).distinct().all()
+        channel_list = [row.folder_name for row in folder_rows]
+    finally:
+        session.close()
+
+    # Render a template that displays each channel as a link
     return render_template("embedded_channels.html", channels=channel_list)
 
 
@@ -465,56 +477,146 @@ def embedded_channels():
 def chat_channel_page(channel_name):
     """
     Render a page to chat with the entire channel.
-    The actual chat is done asynchronously 
-    (see /api/chat-channel/<channel_name> route below).
+    Also show all videos that belong to this channel.
     """
-    return render_template("channel_chat.html", channel_name=channel_name)
+    session = SessionLocal()
+    try:
+        # SELECT v.* 
+        # FROM videos v
+        # JOIN video_folders vf ON v.video_id = vf.video_id
+        # WHERE vf.folder_name = :channel_name
+        videos = (
+            session.query(Video)
+            .join(VideoFolder, Video.video_id == VideoFolder.video_id)
+            .filter(VideoFolder.folder_name == channel_name)
+            .all()
+        )
+        video_data = []
+        for vid in videos:
+            summaries_by_type = {}
+            for s in vid.summaries:
+                stype = s.summary_type.lower()  # "ollama", "openai", etc.
+                if stype not in summaries_by_type:
+                    summaries_by_type[stype] = []
+                summaries_by_type[stype].append(s)
+
+            video_data.append({
+                "video": vid,
+                "summaries_by_type": summaries_by_type
+            })        
+    finally:
+        session.close()
+
+    # We'll pass `videos` to the template so we can display them
+    return render_template("channel_chat.html", channel_name=channel_name, video_data=video_data)
 
 
 @app.route("/api/chat-channel/<channel_name>", methods=["POST"])
 def api_chat_channel(channel_name):
     """
     AJAX endpoint to handle chat queries for a given channel.
-    1) We embed the user query with Ollama
-    2) We do a top-K similarity search in the 'videos_embedding'
-       restricted to those videos that belong to 'channel_name'
-    3) We call ollama_generate or a similar function to get a final answer
-    4) Return JSON result
+    Here we would:
+     1) embed the user query with Ollama (or your approach)
+     2) do a top-K similarity search in 'videos_embedding' restricted to channel_name
+     3) call ollama_generate or similar to get the final answer
     """
-    user_query = request.json.get("query", "")
-    # ... do your embedding, similarity search, generation ...
-    # pseudo example:
-    #  user_query_embedding = SELECT ollama_embed(...) 
-    #  results = SELECT chunk FROM videos_embedding 
-    #            WHERE channel=channel_name ORDER BY embedding <=> user_query_embedding
-    #  final_answer = SELECT ollama_generate(...)
+    data = request.json or {}
+    user_query = data.get("query", "")
+    logger.info(f"Chat-channel query for channel={channel_name}, user_query={user_query}")
 
-    # We'll just return a placeholder:
-    response_text = f"Responding about channel: {channel_name}, for query: {user_query}"
+    # -- PSEUDO CODE FOR SIMILARITY SEARCH & GENERATION (mocked) --
+    # user_query_emb = SELECT ollama_embed('nomic-embed-text', user_query, _host=>...)
+    # relevant_chunks = SELECT chunk FROM videos_embedding 
+    #   JOIN video_folders ON ...
+    #   WHERE folder_name=channel_name 
+    #   ORDER BY chunk_embedding <=> user_query_emb
+    # final_answer = SELECT ollama_generate('llama3.2', context=..., _host=>...)
+    # -------------------------------------------------------------
 
-    return jsonify({"answer": response_text})
+    final_answer = f"Mock response about channel='{channel_name}', query='{user_query}'"
+    return jsonify({"answer": final_answer})
 
 
 @app.route("/chat-video/<video_id>", methods=["GET"])
 def chat_video_page(video_id):
     """
     Renders a page that allows chatting with a single video's content.
-    We'll handle the chat asynchronously, see /api/chat-video/<video_id> route.
+    We'll also fetch all the channels (folder_name) this video belongs to.
+    And display its 'video_name' (which is the 'title' in your model).
     """
-    return render_template("video_chat.html", video_id=video_id)
+    session = SessionLocal()
+    try:
+        # Fetch the specific video
+        video = session.query(Video).filter_by(video_id=video_id).first()
+
+        if not video:
+            # Handle case where the video doesn't exist
+            return f"Video with id '{video_id}' not found.", 404
+
+        # The user wants to see "Video Name" instead of "Video Title" => we'll use video.title
+        video_name = video.title
+
+        # Retrieve all the channels/folders this video belongs to
+        # The relationship is video.folders -> list of VideoFolder objects
+        folder_list = [vf.folder_name for vf in video.folders]
+
+        summaries_by_type = {}
+        for s in video.summaries:
+            stype = s.summary_type.lower()  # e.g. "openai", "ollama"
+            if stype not in summaries_by_type:
+                summaries_by_type[stype] = []
+            summaries_by_type[stype].append(s)
+
+    finally:
+        session.close()
+
+    # Pass this info to the template:
+    return render_template("video_chat.html",
+                           video_id=video_id,
+                           video_name=video_name,
+                           folder_list=folder_list,
+                            summaries_by_type=summaries_by_type)
 
 
 @app.route("/api/chat-video/<video_id>", methods=["POST"])
 def api_chat_video(video_id):
     """
     AJAX endpoint for chatting with a single video's content.
-    Similar approach as the channel chat. 
     """
-    user_query = request.json.get("query", "")
-    # embed user_query, do similarity search restricted to the given video,
-    # then call ollama generation, etc.
-    response_text = f"Video chat response for video_id={video_id}, query={user_query}"
-    return jsonify({"answer": response_text})
+    data = request.json or {}
+    user_query = data.get("query", "")
+    logger.info(f"Chat-video query for video_id={video_id}, user_query={user_query}")
+
+    # -- PSEUDO CODE FOR VIDEO SIMILARITY SEARCH & GENERATION (mocked) --
+    # user_query_emb = SELECT ollama_embed(...)
+    # relevant_chunks = SELECT chunk FROM videos_embedding 
+    #   WHERE video_id=:video_id 
+    #   ORDER BY chunk_embedding <=> user_query_emb
+    # final_answer = SELECT ollama_generate(...)
+    # --------------------------------------------------------
+
+    final_answer = f"Mock response about video_id='{video_id}', query='{user_query}'"
+    return jsonify({"answer": final_answer})
+
+
+
+@app.route("/view-summary/<int:summary_id>", methods=["GET"])
+def view_summary_from_db(summary_id):
+    """
+    Fetches a summary by ID and displays it in a template.
+    """
+    session = SessionLocal()
+    try:
+        summary_obj = session.query(Summary).get(summary_id)
+        if not summary_obj:
+            return f"Summary with ID {summary_id} not found.", 404
+
+        # We'll pass the entire object to the template
+    finally:
+        session.close()
+
+    return render_template("summary_view.html", summary=summary_obj)
+
 
 if __name__ == '__main__':
     # For local dev

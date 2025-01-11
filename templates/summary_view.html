@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Summary ({{ summary.summary_type }})</title>
+</head>
+<body>
+  <h1>Summary: {{ summary.summary_type }} (Model: {{ summary.model_name }})</h1>
+  <p><strong>Video ID:</strong> {{ summary.video_id }}</p>
+  <p><strong>Tokens:</strong> {{ summary.tokens_count }}</p>
+  <hr/>
+  <div style="white-space: pre-wrap; border:1px solid #ccc; padding:10px;">
+    {{ summary.summary_text }}
+  </div>
+</body>
+</html>

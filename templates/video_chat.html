@@ -1,35 +1,68 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1>Chat with Video: {{ video_id }}</h1>
+<h1>Chat with Video: {{ video_name }}</h1>
 
-    <div>
-      <textarea id="userQuery" rows="3" cols="60" placeholder="Enter your question..."></textarea><br/>
-      <button id="sendBtn">Send</button>
-    </div>
-    <div id="chatResult" style="margin-top:20px; border:1px solid #ccc; padding:10px;">
-      <!-- Response from the server -->
-    </div>
+<p><strong>Go Back to the Channel for this Video:</strong></p>
+{% if folder_list %}
+  <ul>
+    {% for folder in folder_list %}
+      <li><a href="/chat-channel/{{ folder }}">{{ folder }}</a></li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No channels found for this video.</p>
+{% endif %}
+
+<h2>Summaries</h2>
+  {% if summaries_by_type %}
+    <ul>
+      {% for stype, sumlist in summaries_by_type.items() %}
+        <li><strong>{{ stype|capitalize }} Summaries:</strong>
+          <ul>
+            {% for s in sumlist %}
+              <!-- Link to view-summary/<id> -->
+              <li>
+                <a href="/view-summary/{{ s.id }}">
+                  View {{ stype|capitalize }} Summary (Model: {{ s.model_name }})
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No summaries found.</p>
+  {% endif %}    
+
+<div>
+  <textarea id="userQuery" rows="3" cols="60" placeholder="Enter your question..."></textarea><br/>
+  <button id="sendBtn">Send</button>
+</div>
+<div id="chatResult" style="margin-top:20px; border:1px solid #ccc; padding:10px;">
+  <!-- Response from the server -->
+</div>
 
 <script>
 document.getElementById('sendBtn').addEventListener('click', async () => {
-  const query = document.getElementById('userQuery').value.trim();
-  if (!query) return;
+const query = document.getElementById('userQuery').value.trim();
+if (!query) return;
 
-  // Show a "Processing..." message
-  const chatDiv = document.getElementById('chatResult');
-  chatDiv.innerHTML = "Processing...";
+const chatDiv = document.getElementById('chatResult');
+chatDiv.innerHTML = "Processing...";
 
-  try {
-    const resp = await fetch(`/api/chat-video/{{ video_id }}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query })
-    });
-    const data = await resp.json();
-    chatDiv.innerHTML = data.answer;
-  } catch (err) {
-    chatDiv.innerHTML = "Error: " + err;
-  }
+try {
+  const resp = await fetch(`/api/chat-video/{{ video_id }}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query })
+  });
+  const data = await resp.json();
+  chatDiv.innerHTML = data.answer;
+} catch (err) {
+  chatDiv.innerHTML = "Error: " + err;
+}
 });
 </script>
+
 {% endblock %}
