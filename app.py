@@ -11,6 +11,12 @@ from youtube_utils import download_channel_transcripts, list_downloaded_videos
 from openai_summarizer import summarize_transcript_openai
 from ollama_summarizer import summarize_transcript_ollama
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+# If you store your models and sync code in separate modules:
+from sync_service.models import Base, Video, VideoFolder, Summary, SyncJob
+from sync_service.sync import run_sync  # Contains the run_sync() function
 app = Flask(__name__)
 
 # Configure logging
@@ -297,6 +303,59 @@ def api_all_tasks():
         })
 
     return jsonify(all_tasks)
+
+
+@app.route('/api/sync-files', methods=['POST'])
+def api_sync_files():
+    """
+    Trigger a file-to-DB sync. Spawns a background thread so we don't block.
+    Returns immediate JSON indicating the sync has started.
+    
+    Example POST body: {}
+    (You could allow optional parameters if needed)
+    """
+    # You could add logic to prevent multiple concurrent syncs, 
+    # or accept "force" parameters, etc. For simplicity, we just spawn a new thread each time.
+
+    def sync_thread():
+        # Call your sync logic
+        run_sync()  # This function updates the sync_jobs table with 'in_progress' -> 'completed' or 'failed'.
+
+    thread = threading.Thread(target=sync_thread, daemon=True)
+    thread.start()
+
+    return jsonify({"status": "initiated"}), 202
+
+
+@app.route('/api/sync-jobs/current', methods=['GET'])
+def api_sync_jobs_current():
+    """
+    Returns the most recent sync job from the 'sync_jobs' table
+    or a message if none exist.
+    """
+    # For production, you might want a session manager function or a shared session.
+    DB_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/mydb")
+    engine = create_engine(DB_URL)
+    SessionLocal = sessionmaker(bind=engine)
+    session = SessionLocal()
+
+    # Grab the most recent job (assuming auto-increment 'id', descending)
+    job = session.query(SyncJob).order_by(SyncJob.id.desc()).first()
+    if not job:
+        session.close()
+        return jsonify({"status": "no_jobs", "message": "No sync jobs found."}), 200
+
+    # Convert to JSON
+    job_data = {
+        "id": job.id,
+        "start_time": job.start_time.isoformat() if job.start_time else None,
+        "end_time": job.end_time.isoformat() if job.end_time else None,
+        "status": job.status,
+        "message": job.message,
+    }
+    session.close()
+    return jsonify(job_data), 200
+
 
 
 @app.route('/summaries/<channel_id>/<method>/<video_id>')

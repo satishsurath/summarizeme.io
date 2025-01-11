@@ -9,6 +9,24 @@
 <div id="statusResult">
   <!-- We'll populate this <div> with a table from status.js -->
 </div>
+
+<h2>Sync Status</h2>
+<div id="syncStatus">
+    <!-- We'll populate this <div> with a table from status.js -->
+  </div>
+
+
 <script src="{{ url_for('static', filename='marked.min.js') }}"></script>
+<script>
+    async function checkSyncStatus() {
+      const res = await fetch("/api/sync-jobs/current");
+      const data = await res.json();
+      // data.status can be "in_progress", "completed", or "failed"
+      // data.message can contain logs or error info
+      document.getElementById("syncStatus").innerText =
+        `Sync status: ${data.status}, message: ${data.message || ""}`;
+    }
+    setInterval(checkSyncStatus, 5000);
+    </script>
 <script src="{{ url_for('static', filename='js/status.js') }}"></script>
 {% endblock %}
