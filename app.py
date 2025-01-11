@@ -17,6 +17,10 @@ from sqlalchemy.orm import sessionmaker
 # If you store your models and sync code in separate modules:
 from sync_service.models import Base, Video, VideoFolder, Summary, SyncJob
 from sync_service.sync import run_sync  # Contains the run_sync() function
+
+# Import your new sync function
+from sync_service.embedding_sync import run_embedding_sync
+
 app = Flask(__name__)
 
 # Configure logging
@@ -327,6 +331,20 @@ def api_sync_files():
     return jsonify({"status": "initiated"}), 202
 
 
+# Example route to trigger embedding
+@app.route("/api/embed-db", methods=["POST"])
+def api_embed_db():
+    """
+    Trigger the pgai vectorizer creation or update in a background thread.
+    """
+    def embedding_thread():
+        run_embedding_sync()
+
+    thread = threading.Thread(target=embedding_thread, daemon=True)
+    thread.start()
+
+    return jsonify({"status": "initiated"}), 202
+
 @app.route('/api/sync-jobs/current', methods=['GET'])
 def api_sync_jobs_current():
     """
@@ -423,6 +441,80 @@ def view_summary(channel_id, method, video_id):
         transcript_no_ts=transcript_no_ts_joined
     )
 
+
+
+#############################################################################
+# Now define your new routes for embedded-channels, chat-channel, chat-video
+#############################################################################
+
+@app.route("/embedded-channels", methods=["GET"])
+def embedded_channels():
+    """
+    Renders a page that shows channels that have embedded data.
+    For example, you might query your DB for channels 
+    that appear in the 'videos_embedding' or 'videos' table with embeddings.
+    """
+    # For demonstration, let's say we just pass a static list of channels or 
+    # query from your 'channels' table or from a "SELECT DISTINCT folder_name FROM video_folders".
+    # We'll pass a placeholder list for now:
+    channel_list = ["ChannelA", "ChannelB", "ChannelC"]
+    return render_template("embedded_channels.html", channels=channel_list)
+
+
+@app.route("/chat-channel/<channel_name>", methods=["GET"])
+def chat_channel_page(channel_name):
+    """
+    Render a page to chat with the entire channel.
+    The actual chat is done asynchronously 
+    (see /api/chat-channel/<channel_name> route below).
+    """
+    return render_template("channel_chat.html", channel_name=channel_name)
+
+
+@app.route("/api/chat-channel/<channel_name>", methods=["POST"])
+def api_chat_channel(channel_name):
+    """
+    AJAX endpoint to handle chat queries for a given channel.
+    1) We embed the user query with Ollama
+    2) We do a top-K similarity search in the 'videos_embedding'
+       restricted to those videos that belong to 'channel_name'
+    3) We call ollama_generate or a similar function to get a final answer
+    4) Return JSON result
+    """
+    user_query = request.json.get("query", "")
+    # ... do your embedding, similarity search, generation ...
+    # pseudo example:
+    #  user_query_embedding = SELECT ollama_embed(...) 
+    #  results = SELECT chunk FROM videos_embedding 
+    #            WHERE channel=channel_name ORDER BY embedding <=> user_query_embedding
+    #  final_answer = SELECT ollama_generate(...)
+
+    # We'll just return a placeholder:
+    response_text = f"Responding about channel: {channel_name}, for query: {user_query}"
+
+    return jsonify({"answer": response_text})
+
+
+@app.route("/chat-video/<video_id>", methods=["GET"])
+def chat_video_page(video_id):
+    """
+    Renders a page that allows chatting with a single video's content.
+    We'll handle the chat asynchronously, see /api/chat-video/<video_id> route.
+    """
+    return render_template("video_chat.html", video_id=video_id)
+
+
+@app.route("/api/chat-video/<video_id>", methods=["POST"])
+def api_chat_video(video_id):
+    """
+    AJAX endpoint for chatting with a single video's content.
+    Similar approach as the channel chat. 
+    """
+    user_query = request.json.get("query", "")
+    # embed user_query, do similarity search restricted to the given video,
+    # then call ollama generation, etc.
+    response_text = f"Video chat response for video_id={video_id}, query={user_query}"
+    return jsonify({"answer": response_text})
 
 if __name__ == '__main__':
     # For local dev

@@ -54,9 +54,14 @@
             </li>
             <li class="nav-item">
               <a class="nav-link" id="syncBtn" href="#">
-                Sync DB
+                1. Sync DB
               </a>
-            </li>            
+            </li>   
+            <li class="nav-item">
+              <a class="nav-link" id="embedBtn" href="#">
+                2. Embed DB
+              </a>
+            </li>                        
           </ul>
         </div>
       </div>
@@ -89,6 +94,23 @@
       }
     });
     // Then poll /api/sync-jobs/current for the actual status...
+    
+    document.getElementById('embedBtn').addEventListener('click', async () => {
+      try {
+        const resp = await fetch('/api/embed-db', { method: 'POST' });
+        const data = await resp.json();
+        // Show user that sync was initiated
+        // document.getElementById('syncStatus').innerText =
+        //  `Sync initiated. Status: ${data.status}`;
+          console.log(data);
+      } catch (err) {
+        document.getElementById('syncStatus').innerText = `Error: ${err}`;
+        console.error(err);
+      }
+    });
+    // Then poll /api/sync-jobs/current for the actual status...
+        
+    
     </script>
 </body>
 </html>

@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>Channels with Embedded Data</h1>
+<ul>
+    {% for c in channels %}
+      <li>
+        <a href="/chat-channel/{{ c }}">{{ c }}</a>  <!-- Link to chat with channel -->
+      </li>
+    {% endfor %}
+</ul>
+{% endblock %}

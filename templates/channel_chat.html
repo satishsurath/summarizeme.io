@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block content %}
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Chat with Channel {{ channel_name }}</title>
+</head>
+<body>
+    <h1>Chat with Channel: {{ channel_name }}</h1>
+
+    <div>
+      <textarea id="userQuery" rows="3" cols="60" placeholder="Enter your question..."></textarea><br/>
+      <button id="sendBtn">Send</button>
+    </div>
+    <div id="chatResult" style="margin-top:20px; border:1px solid #ccc; padding:10px;">
+      <!-- Response from the server -->
+    </div>
+
+<script>
+document.getElementById('sendBtn').addEventListener('click', async () => {
+  const query = document.getElementById('userQuery').value.trim();
+  if (!query) return;
+
+  // Show a "Processing..." message
+  const chatDiv = document.getElementById('chatResult');
+  chatDiv.innerHTML = "Processing...";
+
+  try {
+    const resp = await fetch(`/api/chat-channel/{{ channel_name }}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query })
+    });
+    const data = await resp.json();
+    chatDiv.innerHTML = data.answer;
+  } catch (err) {
+    chatDiv.innerHTML = "Error: " + err;
+  }
+});
+</script>
+
+</body>
+</html>
+
+{% endblock %}
