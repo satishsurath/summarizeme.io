@@ -43,14 +43,14 @@ def run_embedding_sync():
                 embedding => ai.embedding_ollama(
                     'nomic-embed-text',
                     768,
-                    _host => '{OLLAMA_URL}'  -- The standard port 11434 is appended
+                    base_url => '{OLLAMA_URL}'  -- The standard port 11434 is appended
                 ),
                 -- Adjust chunking for transcripts:
                 chunking => ai.chunking_recursive_character_text_splitter(
                     'transcript_no_ts',
-                    chunk_size => 1000,
-                    chunk_overlap => 200,
-                    separator => ARRAY[E'\\n', E'.', E' ']
+                    1000,
+                    200,
+                    separators => array[E'\n\n', E'\n', '.', '?', '!']
                 ),
                 -- You can tweak the formatting if you want to add more metadata
                 formatting => ai.formatting_python_template(
