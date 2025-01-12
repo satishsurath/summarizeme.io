@@ -550,14 +550,10 @@ def chat_video_page(video_id):
         video = session.query(Video).filter_by(video_id=video_id).first()
 
         if not video:
-            # Handle case where the video doesn't exist
             return f"Video with id '{video_id}' not found.", 404
 
-        # The user wants to see "Video Name" instead of "Video Title" => we'll use video.title
         video_name = video.title
-
-        # Retrieve all the channels/folders this video belongs to
-        # The relationship is video.folders -> list of VideoFolder objects
+        video_transcript = video.transcript_no_ts
         folder_list = [vf.folder_name for vf in video.folders]
 
         summaries_by_type = {}
@@ -566,16 +562,20 @@ def chat_video_page(video_id):
             if stype not in summaries_by_type:
                 summaries_by_type[stype] = []
             summaries_by_type[stype].append(s)
+            s.summary_text = markdown.markdown(s.summary_text)
 
     finally:
         session.close()
 
     # Pass this info to the template:
-    return render_template("video_chat.html",
-                           video_id=video_id,
-                           video_name=video_name,
-                           folder_list=folder_list,
-                            summaries_by_type=summaries_by_type)
+    return render_template(
+        "video_chat.html",
+        video_id=video_id,
+        video_name=video_name,
+        video_transcript=video_transcript,
+        folder_list=folder_list,
+        summaries_by_type=summaries_by_type
+    )
 
 
 @app.route("/api/chat-video/<video_id>", methods=["POST"])
@@ -610,6 +610,8 @@ def view_summary_from_db(summary_id):
         summary_obj = session.query(Summary).get(summary_id)
         if not summary_obj:
             return f"Summary with ID {summary_id} not found.", 404
+        else:
+            summary_obj.summary_text = markdown.markdown(summary_obj.summary_text)
 
         # We'll pass the entire object to the template
     finally:

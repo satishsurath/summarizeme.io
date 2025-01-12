@@ -2,38 +2,39 @@
 {% block content %}
 <h1>Chat with Video: {{ video_name }}</h1>
 
-<p><strong>Go Back to the Channel for this Video:</strong></p>
+
 {% if folder_list %}
   <ul>
     {% for folder in folder_list %}
-      <li><a href="/chat-channel/{{ folder }}">{{ folder }}</a></li>
+      <li><strong>Back to the Channel:</strong>&nbsp;<a href="/chat-channel/{{ folder }}">{{ folder }}</a></li>
     {% endfor %}
   </ul>
 {% else %}
   <p>No channels found for this video.</p>
 {% endif %}
 
-<h2>Summaries</h2>
+<details style="margin-bottom: 1em;">
+    <summary><strong>Transcript</strong></summary>
+    <div style="white-space: pre-wrap; margin-top: 0.5em; padding-left: 1em;">
+      {{ video_transcript }}
+    </div>
+  </details>
   {% if summaries_by_type %}
-    <ul>
-      {% for stype, sumlist in summaries_by_type.items() %}
-        <li><strong>{{ stype|capitalize }} Summaries:</strong>
-          <ul>
-            {% for s in sumlist %}
-              <!-- Link to view-summary/<id> -->
-              <li>
-                <a href="/view-summary/{{ s.id }}">
-                  View {{ stype|capitalize }} Summary (Model: {{ s.model_name }})
-                </a>
-              </li>
-            {% endfor %}
-          </ul>
-        </li>
-      {% endfor %}
-    </ul>
-    {% else %}
+    {% for stype, sumlist in summaries_by_type.items() %}
+          {% for s in sumlist %}
+            <details style="margin-bottom: 1em;">
+              <summary>{{ stype|capitalize }} Summary (Model: {{ s.model_name }})</summary>
+              <div style="white-space: pre-wrap; margin-top: 0.5em; padding-left: 1em;">
+                {{ s.summary_text|safe }}
+              </div>
+            </details>
+          {% endfor %}
+        </div>
+      
+    {% endfor %}
+  {% else %}
     <p>No summaries found.</p>
-  {% endif %}    
+  {% endif %}
 
 <div>
   <textarea id="userQuery" rows="3" cols="60" placeholder="Enter your question..."></textarea><br/>

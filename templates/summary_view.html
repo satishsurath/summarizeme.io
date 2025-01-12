@@ -10,7 +10,7 @@
   <p><strong>Tokens:</strong> {{ summary.tokens_count }}</p>
   <hr/>
   <div style="white-space: pre-wrap; border:1px solid #ccc; padding:10px;">
-    {{ summary.summary_text }}
+    {{ summary.summary_text|safe  }}
   </div>
 </body>
 </html>
