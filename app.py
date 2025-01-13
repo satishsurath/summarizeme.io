@@ -10,9 +10,11 @@ from dotenv import load_dotenv
 from youtube_utils import download_channel_transcripts, list_downloaded_videos
 from openai_summarizer import summarize_transcript_openai
 from ollama_summarizer import summarize_transcript_ollama
+from ollama_phi4_transcript_enhancer import transcript_enhancer_ollama
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import text
 
 # If you store your models and sync code in separate modules:
 from sync_service.models import Base, Video, VideoFolder, Summary, SyncJob
@@ -37,6 +39,8 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 ollama_host = os.getenv("REMOTE_OLLAMA_HOST")
 print(f"ollama_host: {ollama_host}")
+# Build a full URL for Ollama, typically port 11434
+OLLAMA_URL = f"http://{ollama_host}:11434"
 
 # In-memory storage for statuses (for demo). 
 # For production, use a database or a caching layer (Redis).
@@ -203,8 +207,10 @@ def api_summarize():
                 # Summarize each transcript
                 if method == "openai":
                     summarize_transcript_openai(channel_id, vid)
-                else:
+                elif method == "ollama":
                     summarize_transcript_ollama(channel_id, vid)
+                else:
+                    transcript_enhancer_ollama(channel_id, vid)
                 summarize_statuses[task_id]["processed"] += 1
             summarize_statuses[task_id]["status"] = "completed"
         except Exception as e:
@@ -510,33 +516,110 @@ def chat_channel_page(channel_name):
     # We'll pass `videos` to the template so we can display them
     return render_template("channel_chat.html", channel_name=channel_name, video_data=video_data)
 
-
 @app.route("/api/chat-channel/<channel_name>", methods=["POST"])
 def api_chat_channel(channel_name):
     """
     AJAX endpoint to handle chat queries for a given channel.
-    Here we would:
-     1) embed the user query with Ollama (or your approach)
-     2) do a top-K similarity search in 'videos_embedding' restricted to channel_name
-     3) call ollama_generate or similar to get the final answer
+    1) Embed the user query with Ollama.
+    2) Do a top-K similarity search.
+    3) Generate a final answer with Ollama.
     """
     data = request.json or {}
-    user_query = data.get("query", "")
-    logger.info(f"Chat-channel query for channel={channel_name}, user_query={user_query}")
+    user_query = data.get("query", "").strip()
+    if not user_query:
+        return jsonify({"answer": "No query provided."}), 400
 
-    # -- PSEUDO CODE FOR SIMILARITY SEARCH & GENERATION (mocked) --
-    # user_query_emb = SELECT ollama_embed('nomic-embed-text', user_query, _host=>...)
-    # relevant_chunks = SELECT chunk FROM videos_embedding 
-    #   JOIN video_folders ON ...
-    #   WHERE folder_name=channel_name 
-    #   ORDER BY chunk_embedding <=> user_query_emb
-    # final_answer = SELECT ollama_generate('llama3.2', context=..., _host=>...)
-    # -------------------------------------------------------------
+    logger.info(f"Chat-channel query for channel={channel_name}, user_query='{user_query}'")
 
-    final_answer = f"Mock response about channel='{channel_name}', query='{user_query}'"
+    session = SessionLocal()
+    try:
+        # 1) EMBED USER QUERY
+        # Must match the function signature: ollama_embed(model text, input_text text, host text, ...)
+        sql_embed = text("""
+            SELECT ai.ollama_embed(
+                'nomic-embed-text',
+                :query_text,
+            ) AS user_query_emb
+        """)
+
+        user_query_emb = session.execute(
+            sql_embed,
+            {
+                "query_text": user_query,
+                "ollama_url": OLLAMA_URL  # e.g. "http://192.168.50.4:11434"
+            }
+        ).scalar()
+
+        if not user_query_emb:
+            return jsonify({"answer": "Failed to get embedding for user query."}), 500
+
+        # 2) TOP-K SIMILARITY SEARCH
+        sql_top_chunks = text("""
+            SELECT 
+                ve.chunk,
+                (ve.chunk_embedding <=> :q_emb) AS distance
+            FROM videos_embedding ve
+            JOIN video_folders vf ON ve.video_id = vf.video_id
+            WHERE vf.folder_name = :chan
+            ORDER BY ve.chunk_embedding <=> :q_emb
+            LIMIT 3
+        """)
+
+        chunk_rows = session.execute(
+            sql_top_chunks,
+            {"q_emb": user_query_emb, "chan": channel_name}
+        ).fetchall()
+
+        context_pieces = []
+        for row in chunk_rows:
+            chunk_text = row[0]
+            distance = row[1]
+            context_pieces.append(f"Chunk (distance={distance:.4f}): {chunk_text}")
+
+        context_for_generation = "\n\n".join(context_pieces)
+        if not context_for_generation:
+            context_for_generation = "No relevant chunks found."
+
+        # 3) GENERATE THE FINAL ANSWER
+        # Matching signature: ollama_generate(model text, prompt text, host text, ...)
+        sql_generate = text("""
+            SELECT ai.ollama_generate(
+                'llama3.2',
+                :prompt,
+                :ollama_url
+            ) AS answer
+        """)
+
+        prompt_str = f"""
+Answer the user's query based on the context below.
+
+Context:
+{context_for_generation}
+
+User Query:
+{user_query}
+
+Please provide a concise answer:
+"""
+
+        final_answer = session.execute(
+            sql_generate,
+            {
+                "prompt": prompt_str,
+                "ollama_url": OLLAMA_URL
+            }
+        ).scalar()
+
+        if not final_answer:
+            final_answer = "No answer was returned by the model."
+
+    except Exception as e:
+        logger.exception("Error during chat-channel flow:")
+        return jsonify({"answer": f"Error: {str(e)}"}), 500
+    finally:
+        session.close()
+
     return jsonify({"answer": final_answer})
-
-
 @app.route("/chat-video/<video_id>", methods=["GET"])
 def chat_video_page(video_id):
     """
