@@ -14,6 +14,23 @@
 <h2>Already Downloaded Channels</h2>
   <div id="channelList">Loading...</div>
 
+  <hr>
+
+  <h2>Channels with Embedded Data</h2>
+
+  {% if channels %}
+  <ul>
+      {% for c in channels %}
+        <li>
+          <a href="/chat-channel/{{ c }}">{{ c }}</a>  <!-- Link to chat with channel -->
+        </li>
+      {% endfor %}
+  </ul>
+{% else %}
+  <p>No channels with embedded data found.</p>
+{%endif%}
+
+
 
 
 <script src="{{ url_for('static', filename='marked.min.js') }}"></script>

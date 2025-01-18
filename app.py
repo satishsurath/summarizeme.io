@@ -1,3 +1,4 @@
+# app.py
 import os
 import json
 import threading
@@ -58,7 +59,20 @@ def index():
     Main page: form to enter a channel URL (or a video from that channel).
     Also lists already downloaded channels as links.
     """
-    return render_template('index.html')
+    """
+    Renders a page that shows channels/folders that have embedded data.
+    We'll query the 'video_folders' table for all distinct folder_name.
+    """
+    session = SessionLocal()
+    try:
+        # SELECT DISTINCT folder_name FROM video_folders
+        folder_rows = session.query(VideoFolder.folder_name).distinct().all()
+        channel_list = [row.folder_name for row in folder_rows]
+    finally:
+        session.close()
+
+    # Render a template that displays each channel as a link
+    return render_template('index.html', channels=channel_list)
 
 
 @app.route('/status')
@@ -69,13 +83,42 @@ def status_page():
     return render_template('status.html')
 
 
-@app.route('/videos/<channel_id>')
-def videos_page(channel_id):
+@app.route('/videos/<channel_name>')
+def videos_page(channel_name):
     """
-    Paginated video list for a specific channel.
-    The user can sort, filter, and initiate summarization from here.
+    Render a page to chat with the entire channel.
+    Also show all videos that belong to this channel.
     """
-    return render_template('videos.html', channel_id=channel_id)
+    session = SessionLocal()
+    try:
+        # SELECT v.* 
+        # FROM videos v
+        # JOIN video_folders vf ON v.video_id = vf.video_id
+        # WHERE vf.folder_name = :channel_name
+        videos = (
+            session.query(Video)
+            .join(VideoFolder, Video.video_id == VideoFolder.video_id)
+            .filter(VideoFolder.folder_name == channel_name)
+            .all()
+        )
+        video_data = []
+        for vid in videos:
+            summaries_by_type = {}
+            for s in vid.summaries:
+                stype = s.summary_type.lower()  # "ollama", "openai", etc.
+                if stype not in summaries_by_type:
+                    summaries_by_type[stype] = []
+                summaries_by_type[stype].append(s)
+
+            video_data.append({
+                "video": vid,
+                "summaries_by_type": summaries_by_type
+            })        
+    finally:
+        session.close()
+
+    # We'll pass `videos` to the template so we can display them
+    return render_template("videos.html", channel_name=channel_name, video_data=video_data)
 
 
 @app.route('/api/channel/start', methods=['POST'])
@@ -88,10 +131,11 @@ def api_channel_start():
     if not data or 'channel_url' not in data:
         return jsonify({"status": "error", "message": "No channel_url provided"}), 400
 
-    channel_url = data['channel_url']
+    channel_url = data['channel_url'].strip()
     # Generate a unique task ID for tracking 
     task_id = f"dl_{len(download_statuses)+1}"
 
+    # Initialize the task status in memory
     download_statuses[task_id] = {
         "status": "in_progress",
         "processed": 0,
@@ -101,6 +145,8 @@ def api_channel_start():
 
     def run_download():
         try:
+            # This function now ensures that for every video,
+            # a row in video_folders(folder_name=<channel_id>, video_id=...) is inserted
             download_channel_transcripts(channel_url, download_statuses[task_id])
             download_statuses[task_id]["status"] = "completed"
         except Exception as e:
@@ -108,12 +154,11 @@ def api_channel_start():
             download_statuses[task_id]["status"] = "failed"
             download_statuses[task_id]["errors"].append(str(e))
 
-    # Background thread for the download
-    thread = threading.Thread(target=run_download)
+    # Run the download in a background thread so we don’t block the Flask request
+    thread = threading.Thread(target=run_download, daemon=True)
     thread.start()
 
     return jsonify({"status": "initiated", "task_id": task_id})
-
 
 @app.route('/api/channel/status/<task_id>', methods=['GET'])
 def api_channel_status(task_id):
@@ -235,25 +280,27 @@ def api_summarize_status(task_id):
     return jsonify(status)
 
 
-@app.route('/api/channels', methods=['GET'])
+@app.route("/api/channels", methods=["GET"])
 def api_list_channels():
-    """
-    Lists the already downloaded channels by checking subdirectories in data/channels/.
-    Returns JSON array of channel_ids.
-    """
-    if not os.path.exists(DATA_DIR):
-        return jsonify([])
+    session = SessionLocal()
+    try:
+        folders = (
+            session.query(VideoFolder.folder_name)
+            .distinct()
+            .all()
+        )
+        # Convert to a simple list of folder names
+        folder_list = [f.folder_name for f in folders]
+    finally:
+        session.close()
 
-    all_dirs = [
-        d for d in os.listdir(DATA_DIR)
-        if os.path.isdir(os.path.join(DATA_DIR, d)) and not d.startswith(".")
-    ]
-    return jsonify(all_dirs)
+    return jsonify(folder_list)
 
 @app.route('/api/channels/rename', methods=['POST'])
 def api_rename_channel():
     """
-    Renames a channel folder on disk. Expects JSON:
+    Renames a channel in the database (video_folders.folder_name).
+    Expects JSON:
     { "old_name": "...", "new_name": "..." }
     """
     data = request.get_json()
@@ -264,30 +311,102 @@ def api_rename_channel():
     new_name = data.get("new_name", "").strip()
 
     if not old_name or not new_name:
-        return jsonify({"status": "error", "message": "old_name and new_name are required"}), 400
+        return jsonify({
+            "status": "error",
+            "message": "old_name and new_name are required"
+        }), 400
 
-    old_dir = os.path.join(DATA_DIR, old_name)
-    if not os.path.exists(old_dir):
-        return jsonify({"status": "error", "message": "Old channel directory not found"}), 404
-
-    # Sanitize new_name for Ubuntu (example: only allow alphanumeric, underscores, hyphens, spaces).
+    # Example of sanitizing the new_name to allow only letters, digits, underscores, hyphens, spaces.
     safe_new_name = re.sub(r"[^a-zA-Z0-9_\-\s]", "", new_name)
     if not safe_new_name:
         return jsonify({"status": "error", "message": "Invalid characters in new_name"}), 400
 
-    new_dir = os.path.join(DATA_DIR, safe_new_name)
-
-    # Check if new_name already exists
-    if os.path.exists(new_dir):
-        return jsonify({"status": "error", "message": "A channel with the new name already exists"}), 400
-
+    session = SessionLocal()
     try:
-        os.rename(old_dir, new_dir)
-    except Exception as e:
-        logger.error(f"Error renaming channel: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        # Check if old_name actually exists in the DB
+        count_old = session.query(VideoFolder).filter_by(folder_name=old_name).count()
+        if count_old == 0:
+            return jsonify({
+                "status": "error",
+                "message": f"Channel '{old_name}' not found in database."
+            }), 404
 
-    return jsonify({"status": "ok", "old_name": old_name, "new_name": safe_new_name})
+        # Optional: Check if new_name already exists (if you don't allow duplicates)
+        count_new = session.query(VideoFolder).filter_by(folder_name=safe_new_name).count()
+        if count_new > 0:
+            return jsonify({
+                "status": "error",
+                "message": f"Channel '{safe_new_name}' already exists."
+            }), 400
+
+        # Perform the update (rename)
+        session.query(VideoFolder).filter_by(folder_name=old_name).update({
+            "folder_name": safe_new_name
+        })
+        session.commit()
+
+        return jsonify({
+            "status": "ok",
+            "old_name": old_name,
+            "new_name": safe_new_name
+        })
+
+    except Exception as e:
+        logger.error(f"Error renaming channel in DB: {e}")
+        session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        session.close()
+
+@app.route('/api/channels/delete', methods=['POST'])
+def api_delete_channel():
+    """
+    Deletes a channel (folder_name) from the database.
+    Expects JSON:
+    { "name": "channel_name_to_delete" }
+
+    This will delete:
+      - All VideoFolder rows matching that folder name
+      - Any videos (and their summaries) no longer referenced by any other folder
+    """
+    session = SessionLocal()
+
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({"status": "error", "message": "No channel name provided"}), 400
+
+    folder_name = data['name'].strip()
+    if not folder_name:
+        return jsonify({"status": "error", "message": "Channel name is empty."}), 400
+
+    # 1) Find all VideoFolder rows for this folder_name
+    folders_to_delete = session.query(VideoFolder).filter_by(folder_name=folder_name).all()
+
+    if not folders_to_delete:
+        return jsonify({"status": "error", "message": "Channel not found."}), 404
+
+    # 2) Collect all video_ids from those folders
+    video_ids = [f.video_id for f in folders_to_delete]
+
+    # 3) Delete the VideoFolder rows
+    for f in folders_to_delete:
+        session.delete(f)
+
+    session.flush()
+
+    # 4) Check each unique video_id to see if it’s still referenced
+    unique_video_ids = set(video_ids)
+    for vid in unique_video_ids:
+        usage_count = session.query(VideoFolder).filter_by(video_id=vid).count()
+        if usage_count == 0:
+            # If this video is no longer referenced, delete it and its summaries
+            session.query(Summary).filter_by(video_id=vid).delete()
+            session.query(Video).filter_by(video_id=vid).delete()
+
+    session.commit()
+
+    return jsonify({"status": "ok", "deleted_folder": folder_name})
+
 
 @app.route('/api/all-tasks', methods=['GET'])
 def api_all_tasks():
@@ -460,23 +579,6 @@ def view_summary(channel_id, method, video_id):
 #############################################################################
 # Now define your new routes for embedded-channels, chat-channel, chat-video
 #############################################################################
-
-@app.route("/embedded-channels", methods=["GET"])
-def embedded_channels():
-    """
-    Renders a page that shows channels/folders that have embedded data.
-    We'll query the 'video_folders' table for all distinct folder_name.
-    """
-    session = SessionLocal()
-    try:
-        # SELECT DISTINCT folder_name FROM video_folders
-        folder_rows = session.query(VideoFolder.folder_name).distinct().all()
-        channel_list = [row.folder_name for row in folder_rows]
-    finally:
-        session.close()
-
-    # Render a template that displays each channel as a link
-    return render_template("embedded_channels.html", channels=channel_list)
 
 
 @app.route("/chat-channel/<channel_name>", methods=["GET"])

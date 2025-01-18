@@ -189,7 +189,10 @@ sessions/*
 #logs
 logs/*
 
-.DS_Store
+
 
 # Ignore the data
 data/*
+
+.DS_Store
+.DS_Store

@@ -1,85 +1,125 @@
+# youtube_utils.py
 import os
 import json
-import subprocess
 import logging
+import subprocess
+from datetime import datetime
+
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound
 from pytube import YouTube
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from sync_service.models import Base, Video, VideoFolder
+
 logger = logging.getLogger(__name__)
 
-DATA_DIR = os.getenv("DATA_DIR")
-if DATA_DIR is None:
-    DATA_DIR = "data/channels"  # Base directory for channel data
-
+DB_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/mydb")
+engine = create_engine(DB_URL)
+SessionLocal = sessionmaker(bind=engine)
 
 def download_channel_transcripts(channel_url, status_dict):
     """
-    1. Determine channel_id.
-    2. List all video_ids from the channel (fast).
-    3. For each video, fix unknown upload_date by fetching detailed metadata.
-    4. For each video, download transcript to local json file.
-    5. Update status_dict to reflect progress (including errors).
+    - Use yt-dlp to get channel_id and list of videos
+    - For each video:
+      - fetch transcript
+      - build transcript_with_ts and transcript_no_ts
+      - upsert into 'videos' (with the transcripts)
+      - ensure a row in 'video_folders(folder_name=channel_id, video_id=...)'
+    - Update status_dict for progress
     """
+    Base.metadata.create_all(engine)  # or handle migrations as needed
+
     channel_id, videos = get_channel_and_videos(channel_url)
-
-    # Fix any "UnknownDate" by making a single-video metadata query
-    for v in videos:
-        if v["upload_date"] == "UnknownDate":
-            real_date = get_upload_date_for_video(v["video_id"])
-            if real_date:
-                v["upload_date"] = real_date
-
-    channel_path = os.path.join(DATA_DIR, channel_id)
-    os.makedirs(os.path.join(channel_path, "transcripts"), exist_ok=True)
-    os.makedirs(os.path.join(channel_path, "summaries_openai"), exist_ok=True)
-    os.makedirs(os.path.join(channel_path, "summaries_ollama"), exist_ok=True)
-
     total_videos = len(videos)
     status_dict["total"] = total_videos
+    status_dict["processed"] = 0
+    if "errors" not in status_dict:
+        status_dict["errors"] = []
 
-    logger.info(f"Starting to download transcripts for channel '{channel_id}' with {total_videos} videos.")
+    # Optionally fix unknown upload_date by re-checking each video:
+    # for v in videos:
+    #     if v["upload_date"] == "UnknownDate":
+    #         real_date = get_upload_date_for_video(v["video_id"])
+    #         if real_date:
+    #             v["upload_date"] = real_date
 
-    processed_count = 0
-    for video_meta in videos:
-        video_id = video_meta["video_id"]
-        transcript_file = os.path.join(channel_path, "transcripts", f"{video_id}.json")
+    session = SessionLocal()
+    try:
+        processed_count = 0
+        for video_meta in videos:
+            video_id = video_meta["video_id"]
+            title = video_meta["title"]
+            upload_date = video_meta["upload_date"]
 
-        # If transcript is already downloaded, skip it
-        if os.path.exists(transcript_file):
+            try:
+                transcripts = get_transcript_for_video(video_id)
+            except Exception as e:
+                msg = f"Failed to get transcript for {video_id}: {e}"
+                logger.error(msg)
+                status_dict["errors"].append(msg)
+                processed_count += 1
+                status_dict["processed"] = processed_count
+                continue
+
+            # Convert transcript list of dicts => 2 text strings
+            transcript_with_ts, transcript_no_ts = build_transcript_variants(transcripts)
+
+            # Upsert video
+            video_obj = session.query(Video).filter_by(video_id=video_id).first()
+            if not video_obj:
+                video_obj = Video(
+                    video_id=video_id,
+                    title=title,
+                    upload_date=upload_date,
+                    transcript_with_ts=transcript_with_ts,
+                    transcript_no_ts=transcript_no_ts
+                )
+                session.add(video_obj)
+            else:
+                # update if needed
+                video_obj.title = title
+                video_obj.upload_date = upload_date
+                video_obj.transcript_with_ts = transcript_with_ts
+                video_obj.transcript_no_ts = transcript_no_ts
+
+            session.commit()
+
+            # Ensure folder row for (channel_id, video_id)
+            folder_association = (
+                session.query(VideoFolder)
+                .filter_by(folder_name=channel_id, video_id=video_id)
+                .first()
+            )
+            if not folder_association:
+                folder_association = VideoFolder(
+                    folder_name=channel_id,
+                    video_id=video_id,
+                    last_modified=datetime.utcnow()
+                )
+                session.add(folder_association)
+                session.commit()
+
             processed_count += 1
             status_dict["processed"] = processed_count
-            logger.info(f"Transcript for video '{video_id}' already exists. Skipping download.")
-            continue
 
-        try:
-            transcripts = get_transcript_for_video(video_id)
-            # Save transcript + metadata to file
-            with open(transcript_file, "w", encoding="utf-8") as f:
-                video_meta["transcript"] = transcripts
-                json.dump(video_meta, f, ensure_ascii=False, indent=2)
-            logger.info(f"Successfully downloaded and saved transcript for video '{video_id}'.")
-        except Exception as e:
-            logger.error(f"Failed to get transcript for video '{video_id}': {e}")
-            status_dict["errors"].append(f"Video {video_id}: {e}")
-
-        processed_count += 1
-        status_dict["processed"] = processed_count
-
-    logger.info(f"Finished processing channel '{channel_id}'. "
-                f"Processed {processed_count} out of {total_videos} videos.")
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+        status_dict["errors"].append(str(e))
+    finally:
+        session.close()
 
 
 def get_channel_and_videos(channel_url):
     """
-    Use yt-dlp to list all videos from the channel (or playlist) quickly.
+    Use yt-dlp to list all videos from the channel (or playlist).
     Returns:
-      channel_id (str): a unique ID or playlist ID
-      videos (list of dict): each dict has "video_id", "title", "upload_date"
-                            (may be 'UnknownDate' if yt-dlp doesn't provide it)
+      channel_id (str) 
+      videos (list of dict) => each has "video_id", "title", "upload_date"
     """
     cmd = ["yt-dlp", "--flat-playlist", "--dump-single-json", channel_url]
     result = subprocess.run(cmd, capture_output=True, text=True)
-
     if result.returncode != 0:
         raise Exception(f"yt-dlp failed: {result.stderr}")
 
@@ -87,11 +127,9 @@ def get_channel_and_videos(channel_url):
     channel_id = data.get("id", "unknown_channel_id")
     entries = data.get("entries", [])
     videos = []
-
     for entry in entries:
         vid_id = entry.get("id")
         vid_title = entry.get("title", "Untitled")
-        # The below might be missing or set to "UnknownDate" with --flat-playlist
         upload_date = entry.get("upload_date", "UnknownDate")
         videos.append({
             "video_id": vid_id,
@@ -99,46 +137,38 @@ def get_channel_and_videos(channel_url):
             "upload_date": upload_date
         })
 
-    logger.info(f"Found {len(videos)} videos for channel/playlist '{channel_id}' using URL: {channel_url}")
+    logger.info(f"Found {len(videos)} videos for '{channel_id}' using {channel_url}")
     return channel_id, videos
 
 
 def get_upload_date_for_video(video_id):
     """
-    Attempt to retrieve the actual upload date for a single video via:
-      1) yt-dlp --dump-single-json https://www.youtube.com/watch?v=VIDEO_ID
-      2) fallback to pytube
-    Return 'YYYY-MM-DD' or None if not found.
+    Optionally use "yt-dlp --dump-single-json" or pytube to get 'YYYY-MM-DD'.
     """
-    # Try yt-dlp single-video metadata
     cmd = ["yt-dlp", "--dump-single-json", f"https://www.youtube.com/watch?v={video_id}"]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode == 0:
         try:
             info = json.loads(result.stdout)
-            raw_date = info.get("upload_date")  # typically "YYYYMMDD"
+            raw_date = info.get("upload_date")
             if raw_date and len(raw_date) == 8:
-                return f"{raw_date[0:4]}-{raw_date[4:6]}-{raw_date[6:8]}"
+                return f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:8]}"
         except json.JSONDecodeError:
             pass
 
-    # Fallback to pytube
+    # fallback
     try:
         yt = YouTube(f"https://www.youtube.com/watch?v={video_id}")
         if yt.publish_date:
             return yt.publish_date.strftime("%Y-%m-%d")
     except Exception:
         pass
-
     return None
 
 
 def get_transcript_for_video(video_id):
     """
-    Attempt to retrieve the transcript via youtube_transcript_api (preferring English).
-    Fallback to pytube if not found.
-    Returns a list of dicts: [ { "text":..., "start":..., "duration":... }, ... ]
-    Raises an Exception if no transcript is available.
+    Return a list of dicts: [{ "text":..., "start":..., "duration":... }, ...].
     """
     try:
         transcripts = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
@@ -152,14 +182,14 @@ def get_transcript_for_video(video_id):
                 caption = c
                 break
         if caption is None:
-            raise Exception("No English caption found even via pytube.")
+            raise Exception("No English caption found via pytube.")
         srt_captions = caption.generate_srt_captions()
         return parse_srt(srt_captions)
 
 
 def parse_srt(srt_text):
     """
-    Parse SRT text into a list of dicts: 
+    Convert SRT to a list of dicts: 
         [ {"text":..., "start":..., "duration":...}, ... ].
     """
     lines = srt_text.split('\n')
@@ -190,35 +220,60 @@ def parse_srt(srt_text):
         i += 1
     return entries
 
-
 def srt_time_to_seconds(t_str):
     """
-    Convert SRT time string 'HH:MM:SS,mmm' to total seconds as float.
-    E.g. "00:01:23,456" -> 83.456
+    Parse 'HH:MM:SS,mmm' => total seconds float
+    e.g. "00:01:23,456" -> 83.456
     """
     h, m, s_milli = t_str.split(':')
     s, ms = s_milli.split(',')
-    return int(h) * 3600 + int(m) * 60 + float(s) + float(ms) / 1000.0
+    return int(h)*3600 + int(m)*60 + float(s) + float(ms)/1000.0
+
+def build_transcript_variants(transcript_entries):
+    """
+    Given a list of { "text", "start", "duration" }, build:
+      1) transcript_with_ts  => lines like "[0.00s - 2.30s] Some text"
+      2) transcript_no_ts    => lines of just text
+    Return (with_ts, no_ts).
+    """
+    lines_with_ts = []
+    lines_no_ts = []
+    for entry in transcript_entries:
+        start = entry["start"]
+        dur = entry["duration"]
+        text = entry["text"]
+        # E.g. "[12.34s - 3.21s] Transcript line"
+        line_with = f"[{start:.2f}s - {dur:.2f}s] {text}"
+        lines_with_ts.append(line_with)
+        lines_no_ts.append(text)
+
+    transcript_with_ts = "\n".join(lines_with_ts)
+    transcript_no_ts = "\n".join(lines_no_ts)
+    return transcript_with_ts, transcript_no_ts
 
 
 def list_downloaded_videos(channel_id):
     """
     Return a list of dicts describing the videos for the given channel,
-    reading from local JSON files in the channel's transcripts folder.
+    querying the 'video_folders' and 'videos' tables from the DB.
+    Each dict includes { "video_id", "title", "upload_date" }.
     """
-    channel_path = os.path.join(DATA_DIR, channel_id, "transcripts")
-    if not os.path.exists(channel_path):
-        return []
+    session = SessionLocal()
+    try:
+        video_rows = (
+            session.query(Video)
+            .join(VideoFolder, Video.video_id == VideoFolder.video_id)
+            .filter(VideoFolder.folder_name == channel_id)
+            .all()
+        )
 
-    files = os.listdir(channel_path)
-    videos = []
-    for f in files:
-        if f.endswith(".json"):
-            with open(os.path.join(channel_path, f), "r", encoding="utf-8") as jf:
-                data = json.load(jf)
-                videos.append({
-                    "video_id": data.get("video_id"),
-                    "title": data.get("title", "Untitled"),
-                    "upload_date": data.get("upload_date", "UnknownDate")
-                })
-    return videos
+        videos = []
+        for v in video_rows:
+            videos.append({
+                "video_id": v.video_id,
+                "title": v.title or "Untitled",
+                "upload_date": v.upload_date or "UnknownDate"
+            })
+        return videos
+    finally:
+        session.close()

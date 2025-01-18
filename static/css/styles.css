@@ -19,3 +19,7 @@ body {
     border: 1px solid #ccc;
     padding: 8px;
   }
+
+  ul {
+    list-style-type: circle;
+  }

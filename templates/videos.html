@@ -1,70 +1,85 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="container my-4">
-  <h1 class="mb-3">Channel Videos</h1>
-  <p>Channel ID: {{ channel_id }}</p>
 
-  <!-- Filter & Sort Controls -->
-  <div class="row g-3 align-items-end mb-3">
-    <div class="col-12 col-sm-6 col-md-auto">
-      <label for="filterInput" class="form-label">Filter Title:</label>
-      <input type="text" id="filterInput" class="form-control" />
-    </div>
-    <div class="col-12 col-sm-6 col-md-auto">
-      <label for="sortSelect" class="form-label">Sort By:</label>
-      <select id="sortSelect" class="form-select">
-        <option value="title">Title</option>
-        <option value="date">Upload Date</option>
-      </select>
-    </div>
-    <div class="col-12 col-md-auto">
-      <button id="applyFilterBtn" class="btn btn-primary w-100 w-md-auto">Apply</button>
-    </div>
-  </div>
 
-  <!-- Videos List (table is rendered via JS) -->
-  <!-- Wrap your table in a .table-responsive for horizontal scroll on mobile -->
-  <div id="videosList" class="table-responsive"></div>
 
-  <!-- Pagination Controls -->
-  <div class="row g-3 align-items-center mt-4">
-    <div class="col-auto">
-      <button id="prevPageBtn" class="btn btn-secondary">Previous</button>
-    </div>
-    <div class="col-auto">
-      <span id="pageInfo"></span>
-    </div>
-    <div class="col-auto">
-      <button id="nextPageBtn" class="btn btn-secondary">Next</button>
-    </div>
-  </div>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Chat with Channel {{ channel_name }}</title>
+</head>
+<body>
+    <h1>Chat with Channel: {{ channel_name }}</h1>
 
-  <!-- Summarization Section -->
-  <div class="mt-4">
-    <h3>Summarize Selected Videos</h3>
-    <div class="row g-2 mb-3">
-      <div class="col-auto">
-        <label for="methodSelect" class="visually-hidden">Summarization Method</label>
-        <select id="methodSelect" class="form-select">
-          <option value="openai">OpenAI ChatGPT 4o</option>
-          <option value="ollama">Ollama LLaMA 3.2</option>
-          <option value="phi4">Phi4 Transcript Enhancer</option>
-        </select>
-      </div>
-      <div class="col-auto">
-        <button id="summarizeBtn" class="btn btn-success">Summarize</button>
-      </div>
+    <div>
+      <textarea id="userQuery" rows="3" cols="60" placeholder="Enter your question..."></textarea><br/>
+      <button id="sendBtn">Send</button>
     </div>
-    <div id="summaryStatus"></div>
-  </div>
-</div>
+    <div id="chatResult" style="margin-top:20px; border:1px solid #ccc; padding:10px;">
+      <!-- Response from the server -->
+    </div>
+    <h3>Videos in this Channel:</h3>
+    <ul>
+      {% for item in video_data %}
+      {% set vid = item.video %}
+        <li>
+            <a href="https://www.youtube.com/watch?v={{ vid.video_id }}" target="_blank">
+                <svg  style="fill:#333;height:1em; width:1em;" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48" xml:space="preserve">
+                    <use href="#icon-summarizeYouTube" xlink:href="#icon-summarizeYouTube"></use>
+            </svg></a>
+            &nbsp;
+            <a href="/chat-video/{{ vid.video_id }}"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z"/></svg></a>
 
-<!-- Pass channel_id into your JS -->
+
+            {% if item.summaries_by_type %}
+            {% for stype, sumlist in item.summaries_by_type.items() %}
+            {% for s in sumlist %}
+            <a href="/view-summary/{{ s.id }}">
+
+                <!--View {{ stype|capitalize }} Summary (Model: {{ s.model_name }})-->
+                <svg  style="fill:#333;height:1em; width:1em;" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48" xml:space="preserve">
+                    <use href="#icon-ollama" xlink:href="#icon-ollama"></use>
+            </svg>
+              </a>
+              {% endfor %}
+                {% endfor %}
+                {% endif %}
+
+
+          {{ vid.title }} <!-- , uploaded on {{ vid.upload_date }} -->
+          
+          
+
+
+        </li>
+      {% endfor %}
+    </ul>
+
 <script>
-  const channelId = "{{ channel_id }}";
+document.getElementById('sendBtn').addEventListener('click', async () => {
+  const query = document.getElementById('userQuery').value.trim();
+  if (!query) return;
+
+  // Show a "Processing..." message
+  const chatDiv = document.getElementById('chatResult');
+  chatDiv.innerHTML = "Processing...";
+
+  try {
+    const resp = await fetch(`/api/chat-channel/{{ channel_name }}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query })
+    });
+    const data = await resp.json();
+    chatDiv.innerHTML = data.answer;
+  } catch (err) {
+    chatDiv.innerHTML = "Error: " + err;
+  }
+});
 </script>
 
-<!-- Optional: marked.min.js if you use Markdown on the frontend -->
-<script src="{{ url_for('static', filename='marked.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/videos.js') }}"></script>
+</body>
+</html>
+
 {% endblock %}

@@ -23,6 +23,9 @@ class Video(Base):
     folders = relationship("VideoFolder", back_populates="video")
     summaries = relationship("Summary", back_populates="video")
 
+    # The new V2 Summaries relationship:
+    summaries_v2 = relationship("SummariesV2", back_populates="video")
+
 class VideoFolder(Base):
     __tablename__ = "video_folders"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -45,6 +48,24 @@ class Summary(Base):
     date_generated = Column(DateTime)  # optional, e.g. from summary's metadata
 
     video = relationship("Video", back_populates="summaries")
+
+
+# The NEW Summaries v2 table (without the old columns),
+# and with the new fields: concise_summary, key_topics, etc.
+class SummariesV2(Base):
+    __tablename__ = "summaries_v2"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    video_id = Column(String(50), ForeignKey("videos.video_id"))
+    summary_type = Column(String(50))    # e.g. "ollama_v2"
+    model_name = Column(String(50))      # e.g. "phi4"
+    date_generated = Column(DateTime, default=datetime.datetime.utcnow)
+
+    concise_summary = Column(Text)            # new
+    key_topics = Column(Text)                 # new
+    important_takeaways = Column(Text)        # new
+    comprehensive_notes = Column(Text)        # new
+
+    video = relationship("Video", back_populates="summaries_v2")    
 
 class SyncJob(Base):
     __tablename__ = "sync_jobs"

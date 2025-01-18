@@ -1,7 +1,11 @@
+# ollama_summarizer.py
 import os
 import json
 import ollama
+from dotenv import load_dotenv
 
+#Read the env file
+load_dotenv()
 ollama_host = os.getenv("REMOTE_OLLAMA_HOST")
 print(f"ollama_host: {ollama_host}")
 
@@ -46,7 +50,6 @@ Include:
 1. Concise summary
 2. Key topics
 3. Important takeaways
-4. Notable timestamps
 5. Comprehensive notes
 
 Transcript:
