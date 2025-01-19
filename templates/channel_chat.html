@@ -1,8 +1,5 @@
 {% extends "layout.html" %}
 {% block content %}
-
-
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -12,58 +9,100 @@
 <body>
     <h1>Chat with Channel: {{ channel_name }}</h1>
 
+    <!-- Data source dropdown -->
     <div>
+      <label for="dataTypeSelect"><strong>Data Source:</strong></label>
+      <select id="dataTypeSelect">
+        <option value="comprehensive_notes" selected>Comprehensive Notes</option>
+        <option value="concise_summary">Concise Summary</option>
+        <option value="key_topics">Key Topics</option>
+        <option value="important_takeaways">Important Takeaways</option>
+        <option value="transcript">Transcript</option>
+      </select>
+      <label for="modelSelect"><strong>Model:</strong></label>
+      <select id="modelSelect">
+        <!-- fallback in case dynamic load fails could be added here -->
+      </select>
+    </div>
+
+    <div style="margin-top:1em;">
       <textarea id="userQuery" rows="3" cols="60" placeholder="Enter your question..."></textarea><br/>
       <button id="sendBtn">Send</button>
     </div>
+
     <div id="chatResult" style="margin-top:20px; border:1px solid #ccc; padding:10px;">
       <!-- Response from the server -->
     </div>
+
     <h3>Videos in this Channel:</h3>
     <ul>
       {% for item in video_data %}
       {% set vid = item.video %}
         <li>
             <a href="https://www.youtube.com/watch?v={{ vid.video_id }}" target="_blank">
-                <svg  style="fill:#333;height:1em; width:1em;" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48" xml:space="preserve">
+                <svg  style="fill:#333;height:1em; width:1em;" version="1.1" id="Layer_1"
+                     xmlns="http://www.w3.org/2000/svg" 
+                     xmlns:xlink="http://www.w3.org/1999/xlink" 
+                     viewBox="0 0 48 48" xml:space="preserve">
                     <use href="#icon-summarizeYouTube" xlink:href="#icon-summarizeYouTube"></use>
-            </svg></a>
+                </svg></a>
             &nbsp;
-            <a href="/chat-video/{{ vid.video_id }}"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z"/></svg></a>
-
-          {{ vid.title }} <!-- , uploaded on {{ vid.upload_date }} -->
-          
-          
-
-
+            <a href="/chat-video/{{ vid.video_id }}">
+              <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
+                  <path d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z"/>
+              </svg>
+            </a>
+            {{ vid.title }} 
         </li>
       {% endfor %}
     </ul>
 
-<script>
-document.getElementById('sendBtn').addEventListener('click', async () => {
-  const query = document.getElementById('userQuery').value.trim();
-  if (!query) return;
+    <script>
+  // Dynamically load available Ollama models
+  async function loadOllamaModels() {
+    try {
+      const resp = await fetch("/api/ollama/models");
+      const data = await resp.json();
+      modelSelect.innerHTML = ""; // clear existing
 
-  // Show a "Processing..." message
-  const chatDiv = document.getElementById('chatResult');
-  chatDiv.innerHTML = "Processing...";
-
-  try {
-    const resp = await fetch(`/api/chat-channel/{{ channel_name }}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query })
-    });
-    const data = await resp.json();
-    chatDiv.innerHTML = data.answer;
-  } catch (err) {
-    chatDiv.innerHTML = "Error: " + err;
+      data.data.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.id;
+        modelSelect.appendChild(opt);
+      });
+    } catch (err) {
+      console.error("Failed to load Ollama models:", err);
+      // fallback
+      modelSelect.innerHTML = "<option value='phi4:latest'>phi4:latest</option>";
+    }
   }
-});
-</script>
 
+
+    document.getElementById('sendBtn').addEventListener('click', async () => {
+      const query = document.getElementById('userQuery').value.trim();
+      if (!query) return;
+
+      const dataType = document.getElementById('dataTypeSelect').value;
+      const chatDiv = document.getElementById('chatResult');
+      chatDiv.innerHTML = "Processing...";
+
+      try {
+        const resp = await fetch(`/api/chat-channel/{{ channel_name }}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, data_type: dataType, model_name: modelSelect.value  })
+        });
+        const data = await resp.json();
+        chatDiv.innerHTML = data.answer;
+      } catch (err) {
+        chatDiv.innerHTML = "Error: " + err;
+      }
+    });
+
+  // Dynamically load available Ollama models
+  loadOllamaModels();    
+    </script>
 </body>
 </html>
-
 {% endblock %}

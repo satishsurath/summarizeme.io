@@ -2,11 +2,12 @@
 {% block content %}
 <h1>Chat with Video: {{ video_name }}</h1>
 
-
 {% if folder_list %}
   <ul>
     {% for folder in folder_list %}
-      <li><strong>Back to the Channel:</strong>&nbsp;<a href="/chat-channel/{{ folder }}">{{ folder }}</a></li>
+      <li><strong>Back to the Channel:</strong>&nbsp;
+        <a href="/chat-channel/{{ folder }}">{{ folder }}</a>
+      </li>
     {% endfor %}
   </ul>
 {% else %}
@@ -14,40 +15,53 @@
 {% endif %}
 
 <details style="margin-bottom: 1em;">
-    <summary><strong>Transcript</strong></summary>
-    <div style="white-space: pre-wrap; margin-top: 0.5em; padding-left: 1em;">
-      {{ video_transcript }}
-    </div>
-  </details>
-
+  <summary><strong>Transcript</strong></summary>
+  <div style="white-space: pre-wrap; margin-top: 0.5em; padding-left: 1em;">
+    {{ video_transcript }}
+  </div>
+</details>
 
 <div>
+  <label for="dataTypeSelect"><strong>Data Source:</strong></label>
+  <select id="dataTypeSelect">
+    <!-- By default, select “Comprehensive Notes” -->
+    <option value="comprehensive_notes" selected>Comprehensive Notes</option>
+    <option value="concise_summary">Concise Summary</option>
+    <option value="key_topics">Key Topics</option>
+    <option value="important_takeaways">Important Takeaways</option>
+    <option value="transcript">Transcript</option>
+  </select>
+</div>
+
+<div style="margin-top:1em;">
   <textarea id="userQuery" rows="3" cols="60" placeholder="Enter your question..."></textarea><br/>
   <button id="sendBtn">Send</button>
 </div>
+
 <div id="chatResult" style="margin-top:20px; border:1px solid #ccc; padding:10px;">
   <!-- Response from the server -->
 </div>
 
 <script>
 document.getElementById('sendBtn').addEventListener('click', async () => {
-const query = document.getElementById('userQuery').value.trim();
-if (!query) return;
+  const query = document.getElementById('userQuery').value.trim();
+  const dataType = document.getElementById('dataTypeSelect').value;
+  if (!query) return;
 
-const chatDiv = document.getElementById('chatResult');
-chatDiv.innerHTML = "Processing...";
+  const chatDiv = document.getElementById('chatResult');
+  chatDiv.innerHTML = "Processing...";
 
-try {
-  const resp = await fetch(`/api/chat-video/{{ video_id }}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query })
-  });
-  const data = await resp.json();
-  chatDiv.innerHTML = data.answer;
-} catch (err) {
-  chatDiv.innerHTML = "Error: " + err;
-}
+  try {
+    const resp = await fetch(`/api/chat-video/{{ video_id }}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, data_type: dataType })
+    });
+    const data = await resp.json();
+    chatDiv.innerHTML = data.answer;
+  } catch (err) {
+    chatDiv.innerHTML = "Error: " + err;
+  }
 });
 </script>
 

@@ -7,6 +7,7 @@ from flask import Flask, request, jsonify, render_template, abort
 import markdown
 import re # used for renaming the channel folder 
 from dotenv import load_dotenv
+import psycopg2
 
 from datetime import datetime
 from youtube_utils import download_channel_transcripts, list_downloaded_videos
@@ -638,79 +639,98 @@ def chat_channel_page(channel_name):
 def api_chat_channel(channel_name):
     """
     AJAX endpoint to handle chat queries for a given channel.
-    1) Embed the user query with Ollama.
-    2) Do a top-K similarity search.
-    3) Generate a final answer with Ollama.
+    Uses a 'data_type' param to select which embeddings to query,
+    and 'model_name' to dynamically pick which Ollama model to use.
     """
     data = request.json or {}
     user_query = data.get("query", "").strip()
+    data_type = data.get("data_type", "comprehensive_notes")
+    model_name = data.get("model_name", "phi4:latest")  # default fallback
+
     if not user_query:
         return jsonify({"answer": "No query provided."}), 400
 
-    logger.info(f"Chat-channel query for channel={channel_name}, user_query='{user_query}'")
+    logger.info(f"Chat-channel query for channel={channel_name}, "
+                f"user_query='{user_query}', data_type='{data_type}', model='{model_name}'")
+
+    # 1) Map data_type to the relevant embeddings view
+    EMBEDDINGS_VIEW_MAP = {
+        "comprehensive_notes": "public.summaries_v2_comprehensive_notes_embedding",
+        "concise_summary":     "public.summaries_v2_concise_summary_embedding",
+        "key_topics":          "public.summaries_v2_key_topics_embedding",
+        "important_takeaways": "public.summaries_v2_important_takeaways_embedding",
+        "transcript":          "public.videos_embedding"
+    }
+    selected_view = EMBEDDINGS_VIEW_MAP.get(data_type, EMBEDDINGS_VIEW_MAP["comprehensive_notes"])
 
     session = SessionLocal()
     try:
-        # 1) EMBED USER QUERY
-        # Must match the function signature: ollama_embed(model text, input_text text, host text, ...)
+        # 2) Embed the user query with the chosen model
         sql_embed = text("""
             SELECT ai.ollama_embed(
-                'nomic-embed-text',
+                :model_name,
                 :query_text,
+                :ollama_url
             ) AS user_query_emb
         """)
 
-        user_query_emb = session.execute(
-            sql_embed,
-            {
-                "query_text": user_query,
-                "ollama_url": OLLAMA_URL  # e.g. "http://192.168.50.4:11434"
-            }
-        ).scalar()
+        user_query_emb = session.execute(sql_embed, {
+            "model_name": "nomic-embed-text:latest", 
+            "query_text": user_query,
+            "ollama_url": OLLAMA_URL
+        }).scalar()
 
         if not user_query_emb:
             return jsonify({"answer": "Failed to get embedding for user query."}), 500
 
-        # 2) TOP-K SIMILARITY SEARCH
-        sql_top_chunks = text("""
+        # 3) Retrieve relevant chunks from the selected view
+        sql_top_chunks = text(f"""
             SELECT 
-                ve.chunk,
-                (ve.chunk_embedding <=> :q_emb) AS distance
-            FROM videos_embedding ve
-            JOIN video_folders vf ON ve.video_id = vf.video_id
+                ev.chunk,
+                ev.video_id,
+                v.title AS video_title,
+                1 - (ev.embedding <=> :q_emb) AS similarity
+            FROM {selected_view} ev
+            JOIN video_folders vf ON ev.video_id = vf.video_id
+            JOIN videos v        ON ev.video_id = v.video_id
             WHERE vf.folder_name = :chan
-            ORDER BY ve.chunk_embedding <=> :q_emb
-            LIMIT 3
+            ORDER BY similarity DESC
+            LIMIT 5
         """)
 
-        chunk_rows = session.execute(
-            sql_top_chunks,
-            {"q_emb": user_query_emb, "chan": channel_name}
-        ).fetchall()
+        chunk_rows = session.execute(sql_top_chunks, {
+            "q_emb": user_query_emb,
+            "chan": channel_name
+        }).fetchall()
 
-        context_pieces = []
-        for row in chunk_rows:
-            chunk_text = row[0]
-            distance = row[1]
-            context_pieces.append(f"Chunk (distance={distance:.4f}): {chunk_text}")
+        if not chunk_rows:
+            final_answer = "No relevant content found for this channel and data type."
+            used_videos_html = ""
+        else:
+            context_pieces = []
+            unique_videos = {}
 
-        context_for_generation = "\n\n".join(context_pieces)
-        if not context_for_generation:
-            context_for_generation = "No relevant chunks found."
+            for row in chunk_rows:
+                chunk_text = row[0]
+                chunk_vid_id = row[1]
+                chunk_vid_title = row[2]
+                similarity = row[3]
 
-        # 3) GENERATE THE FINAL ANSWER
-        # Matching signature: ollama_generate(model text, prompt text, host text, ...)
-        sql_generate = text("""
-            SELECT ai.ollama_generate(
-                'llama3.2',
-                :prompt,
-                :ollama_url
-            ) AS answer
-        """)
+                context_pieces.append(f"Chunk (similarity={similarity:.4f}): {chunk_text}")
+                unique_videos[chunk_vid_id] = chunk_vid_title
 
-        prompt_str = f"""
-Answer the user's query based on the context below.
+            context_for_generation = "\n\n".join(context_pieces)
 
+            # 4) Generate final answer (embedding is done; now we do text generation)
+            sql_generate = text("""
+                SELECT ai.ollama_generate(
+                    :model_name,
+                    :prompt,
+                    :ollama_url
+                ) AS answer
+            """)
+
+            prompt_str = f"""
 Context:
 {context_for_generation}
 
@@ -720,16 +740,44 @@ User Query:
 Please provide a concise answer:
 """
 
-        final_answer = session.execute(
-            sql_generate,
-            {
+            result_json = session.execute(sql_generate, {
+                "model_name": model_name,
                 "prompt": prompt_str,
                 "ollama_url": OLLAMA_URL
-            }
-        ).scalar()
+            }).scalar()
 
-        if not final_answer:
-            final_answer = "No answer was returned by the model."
+            if not result_json:
+                final_answer = "No answer was returned by the model."
+            else:
+                final_answer = result_json.get("response", "[No response in JSON]")
+
+            # same logic to append the used_videos_html
+            if unique_videos:
+                used_videos_html = "<h4>Videos used in Context:</h4>\n<ul>\n"
+                for vid_id, vid_title in unique_videos.items():
+                    used_videos_html += f"""
+<li>
+    <a href="https://www.youtube.com/watch?v={vid_id}" target="_blank">
+        <svg style="fill:#333; height:1em; width:1em;" version="1.1"
+             xmlns="http://www.w3.org/2000/svg"
+             xmlns:xlink="http://www.w3.org/1999/xlink"
+             viewBox="0 0 48 48" xml:space="preserve">
+            <use href="#icon-summarizeYouTube" xlink:href="#icon-summarizeYouTube"></use>
+        </svg>
+    </a>
+    &nbsp;
+    <a href="/chat-video/{vid_id}">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px"
+             viewBox="0 -960 960 960" width="24px">
+            <path d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z"/>
+        </svg>
+    </a>
+    {vid_title}
+</li>
+"""
+                used_videos_html += "</ul>\n"
+            else:
+                used_videos_html = ""
 
     except Exception as e:
         logger.exception("Error during chat-channel flow:")
@@ -737,7 +785,12 @@ Please provide a concise answer:
     finally:
         session.close()
 
-    return jsonify({"answer": final_answer})
+    # Convert final_answer from markdown to HTML, then append the used_videos_html
+    final_answer_html = markdown.markdown(final_answer)
+    if used_videos_html:
+        final_answer_html += used_videos_html
+
+    return jsonify({"answer": final_answer_html})
 
 @app.route("/chat-video/<video_id>", methods=["GET"])
 def chat_video_page(video_id):
@@ -777,18 +830,87 @@ def api_chat_video(video_id):
     """
     data = request.json or {}
     user_query = data.get("query", "")
-    logger.info(f"Chat-video query for video_id={video_id}, user_query={user_query}")
+    data_type = data.get("data_type", "comprehensive_notes")  # default fallback
 
-    # -- PSEUDO CODE FOR VIDEO SIMILARITY SEARCH & GENERATION (mocked) --
-    # user_query_emb = SELECT ollama_embed(...)
-    # relevant_chunks = SELECT chunk FROM videos_embedding 
-    #   WHERE video_id=:video_id 
-    #   ORDER BY chunk_embedding <=> user_query_emb
-    # final_answer = SELECT ollama_generate(...)
-    # --------------------------------------------------------
+    logger.info(f"Chat-video query for video_id={video_id}, user_query={user_query}, data_type={data_type}")
 
-    final_answer = f"Mock response about video_id='{video_id}', query='{user_query}'"
-    return jsonify({"answer": final_answer})
+    # 1) Create a small lookup dict that maps data_type to the relevant embeddings store
+    #    e.g. the "destination =>" string you used in create_vectorizer
+    #    or your actual table/view names for each embedding.
+    #    Example names are placeholders—adjust to match your actual vectorizer output.
+    EMBEDDINGS_TABLE_MAP = {
+        "comprehensive_notes": "public.summaries_v2_comprehensive_notes_embedding",
+        "concise_summary":     "public.summaries_v2_concise_summary_embedding",
+        "key_topics":          "public.summaries_v2_key_topics_embedding",
+        "important_takeaways": "public.summaries_v2_important_takeaways_embedding",
+        "transcript":          "public.videos_embedding"
+    }
+
+    # If the user chose something not in the map, default to comprehensive_notes
+    selected_table = EMBEDDINGS_TABLE_MAP.get(data_type, EMBEDDINGS_TABLE_MAP["comprehensive_notes"])
+
+    # 2) Connect to your DB
+    conn = psycopg2.connect(DB_URL)  # or however you do this
+    try:
+        cur = conn.cursor()
+
+        # 3) Embed the user_query
+        #    We'll do something like:
+        #    SELECT ai.ollama_embed('nomic-embed-text', user_query, base_url)
+        embed_sql = """
+            SELECT ai.ollama_embed('nomic-embed-text', %s, %s)
+        """
+        cur.execute(embed_sql, (user_query, OLLAMA_URL))
+        user_query_embedding = cur.fetchone()[0]  # Store the embedding array
+
+        # 4) SELECT relevant chunks from the chosen embeddings table
+        #    If you need to filter by video_id, ensure you stored it as metadata.
+        #    Example if your chunking stored 'video_id' in a column named 'video_id':
+        #    SELECT chunk from selected_table WHERE video_id=%s ORDER BY (embedding <=> user_query_embedding) ASC
+        #    or something similar. 
+        #    Also note 1-(emb <=> query) is "similarity" if you want descending order. 
+        #    Alternatively you can do embedding distance ascending order.
+        select_chunks_sql = f"""
+            SELECT chunk,
+                   1 - (embedding <=> %s) AS similarity
+              FROM {selected_table}
+             WHERE video_id = %s
+             ORDER BY similarity DESC
+             LIMIT 5
+        """
+        cur.execute(select_chunks_sql, (user_query_embedding, video_id))
+        rows = cur.fetchall()
+
+        # 5) Concatenate the top relevant chunks
+        context = "\n\n".join([f"Chunk: {r[0]}" for r in rows])
+
+        # 6) Generate a final answer with ai.ollama_generate or ai.ollama_chat_complete.
+        #    Simple example with ai.ollama_generate. 
+        #    We wrap the context and user query into a single prompt.
+        generate_sql = """
+            SELECT ai.ollama_generate(
+                'gemma2:27b',              -- or your model name
+                %s,                        -- prompt
+                %s                         -- base_url
+            );
+        """
+        prompt_text = f"Query: {user_query}\nContext:\n{context}"
+        cur.execute(generate_sql, (prompt_text, OLLAMA_URL))
+        result_json = cur.fetchone()[0]  # e.g. { "response": "...", "done": True, ... }
+
+        final_answer = result_json.get("response", "[No response in JSON]")
+
+        cur.close()
+    except Exception as e:
+        logger.exception("Error while handling chat-video")
+        final_answer = f"Error: {e}"
+    finally:
+        conn.close()
+
+    # Convert final_answer from markdown to HTML
+    final_answer_html = markdown.markdown(final_answer)
+
+    return jsonify({"answer": final_answer_html})
 
 
 
