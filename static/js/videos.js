@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return `
             <div>
               <a href="/summaries_v2/${s.id}" target="_blank">
-                ${s.model_name} (ID: ${s.id})
+                ${s.model_name}
               </a>
             </div>
           `;

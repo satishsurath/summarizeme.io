@@ -69,40 +69,6 @@
 
   <!-- Bootstrap JavaScript bundle (includes Popper) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    document.getElementById('syncBtn').addEventListener('click', async () => {
-      try {
-        const resp = await fetch('/api/sync-files', { method: 'POST' });
-        const data = await resp.json();
-        // Show user that sync was initiated
-        // document.getElementById('syncStatus').innerText =
-        //  `Sync initiated. Status: ${data.status}`;
-          console.log(data);
-      } catch (err) {
-        document.getElementById('syncStatus').innerText = `Error: ${err}`;
-        console.error(err);
-      }
-    });
-    // Then poll /api/sync-jobs/current for the actual status...
-    
-    document.getElementById('embedBtn').addEventListener('click', async () => {
-      try {
-        const resp = await fetch('/api/embed-db', { method: 'POST' });
-        const data = await resp.json();
-        // Show user that sync was initiated
-        // document.getElementById('syncStatus').innerText =
-        //  `Sync initiated. Status: ${data.status}`;
-          console.log(data);
-      } catch (err) {
-        document.getElementById('syncStatus').innerText = `Error: ${err}`;
-        console.error(err);
-      }
-    });
-    // Then poll /api/sync-jobs/current for the actual status...
-        
-    
-    </script>
-
 <svg>
 
   <defs>

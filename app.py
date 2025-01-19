@@ -94,16 +94,8 @@ def videos_page(channel_name):
         )
         video_data = []
         for vid in videos:
-            summaries_by_type = {}
-            for s in vid.summaries:
-                stype = s.summary_type.lower()  # "ollama", "openai", etc.
-                if stype not in summaries_by_type:
-                    summaries_by_type[stype] = []
-                summaries_by_type[stype].append(s)
-
             video_data.append({
-                "video": vid,
-                "summaries_by_type": summaries_by_type
+                "video": vid
             })        
     finally:
         session.close()
