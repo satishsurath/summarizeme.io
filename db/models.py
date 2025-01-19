@@ -41,6 +41,7 @@ class SummariesV2(Base):
     __tablename__ = "summaries_v2"
     id = Column(Integer, primary_key=True, autoincrement=True)
     video_id = Column(String(50), ForeignKey("videos.video_id"))
+    video_title = Column(String(512))
     model_name = Column(String(50))      # e.g. "phi4"
     date_generated = Column(DateTime, default=datetime.datetime.utcnow)
     concise_summary = Column(Text)            # new

@@ -19,22 +19,7 @@
       {{ video_transcript }}
     </div>
   </details>
-  {% if summaries_by_type %}
-    {% for stype, sumlist in summaries_by_type.items() %}
-          {% for s in sumlist %}
-            <details style="margin-bottom: 1em;">
-              <summary>{{ stype|capitalize }} Summary (Model: {{ s.model_name }})</summary>
-              <div style="white-space: pre-wrap; margin-top: 0.5em; padding-left: 1em;">
-                {{ s.summary_text|safe }}
-              </div>
-            </details>
-          {% endfor %}
-        </div>
-      
-    {% endfor %}
-  {% else %}
-    <p>No summaries found.</p>
-  {% endif %}
+
 
 <div>
   <textarea id="userQuery" rows="3" cols="60" placeholder="Enter your question..."></textarea><br/>

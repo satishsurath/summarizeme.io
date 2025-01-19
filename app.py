@@ -344,6 +344,7 @@ def api_summarize_v2():
                 # 9) Insert SummariesV2 row
                 new_summary = SummariesV2(
                     video_id=vid,
+                    video_title=video_obj.title,
                     model_name=model_name,
                     date_generated=datetime.utcnow(),
                     concise_summary=final_concise,
@@ -624,16 +625,8 @@ def chat_channel_page(channel_name):
         )
         video_data = []
         for vid in videos:
-            summaries_by_type = {}
-            for s in vid.summaries:
-                stype = s.summary_type.lower()  # "ollama", "openai", etc.
-                if stype not in summaries_by_type:
-                    summaries_by_type[stype] = []
-                summaries_by_type[stype].append(s)
-
             video_data.append({
-                "video": vid,
-                "summaries_by_type": summaries_by_type
+                "video": vid
             })        
     finally:
         session.close()
@@ -763,15 +756,6 @@ def chat_video_page(video_id):
         video_name = video.title
         video_transcript = video.transcript_no_ts
         folder_list = [vf.folder_name for vf in video.folders]
-
-        summaries_by_type = {}
-        for s in video.summaries:
-            stype = s.summary_type.lower()  # e.g. "openai", "ollama"
-            if stype not in summaries_by_type:
-                summaries_by_type[stype] = []
-            summaries_by_type[stype].append(s)
-            s.summary_text = markdown.markdown(s.summary_text)
-
     finally:
         session.close()
 
@@ -781,8 +765,7 @@ def chat_video_page(video_id):
         video_id=video_id,
         video_name=video_name,
         video_transcript=video_transcript,
-        folder_list=folder_list,
-        summaries_by_type=summaries_by_type
+        folder_list=folder_list
     )
 
 
