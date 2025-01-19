@@ -738,6 +738,7 @@ Please provide a concise answer:
         session.close()
 
     return jsonify({"answer": final_answer})
+
 @app.route("/chat-video/<video_id>", methods=["GET"])
 def chat_video_page(video_id):
     """
