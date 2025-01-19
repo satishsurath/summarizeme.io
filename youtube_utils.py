@@ -19,31 +19,25 @@ DB_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/mydb")
 engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(bind=engine)
 
+
 def download_channel_transcripts(channel_url, status_dict):
     """
-    - Use yt-dlp to get channel_id and list of videos
+    - Use yt-dlp to get channel_id and list of videos (some might have 'UnknownDate').
     - For each video:
-      - fetch transcript
-      - build transcript_with_ts and transcript_no_ts
-      - upsert into 'videos' (with the transcripts)
-      - ensure a row in 'video_folders(folder_name=channel_id, video_id=...)'
+        1) If 'upload_date' == 'UnknownDate', try to fix it by fetching a real date.
+        2) Fetch transcripts
+        3) Build transcript_with_ts and transcript_no_ts
+        4) Upsert into 'videos' table
+        5) Ensure an association row in 'video_folders(folder_name=channel_id, video_id=...)'
     - Update status_dict for progress
     """
-    Base.metadata.create_all(engine)  # or handle migrations as needed
+    Base.metadata.create_all(engine)  # Or manage migrations as appropriate
 
     channel_id, videos = get_channel_and_videos(channel_url)
     total_videos = len(videos)
     status_dict["total"] = total_videos
-    status_dict["processed"] = 0
-    if "errors" not in status_dict:
-        status_dict["errors"] = []
-
-    # Optionally fix unknown upload_date by re-checking each video:
-    # for v in videos:
-    #     if v["upload_date"] == "UnknownDate":
-    #         real_date = get_upload_date_for_video(v["video_id"])
-    #         if real_date:
-    #             v["upload_date"] = real_date
+    status_dict.setdefault("processed", 0)
+    status_dict.setdefault("errors", [])
 
     session = SessionLocal()
     try:
@@ -53,6 +47,14 @@ def download_channel_transcripts(channel_url, status_dict):
             title = video_meta["title"]
             upload_date = video_meta["upload_date"]
 
+            # 1) Fix unknown date if possible
+            if upload_date == "UnknownDate":
+                real_date = get_upload_date_for_video(video_id)
+                if real_date:
+                    upload_date = real_date
+                    video_meta["upload_date"] = real_date
+
+            # 2) Fetch transcripts
             try:
                 transcripts = get_transcript_for_video(video_id)
             except Exception as e:
@@ -63,10 +65,10 @@ def download_channel_transcripts(channel_url, status_dict):
                 status_dict["processed"] = processed_count
                 continue
 
-            # Convert transcript list of dicts => 2 text strings
+            # 3) Convert transcripts => with_ts / no_ts
             transcript_with_ts, transcript_no_ts = build_transcript_variants(transcripts)
 
-            # Upsert video
+            # 4) Upsert into 'videos'
             video_obj = session.query(Video).filter_by(video_id=video_id).first()
             if not video_obj:
                 video_obj = Video(
@@ -78,7 +80,7 @@ def download_channel_transcripts(channel_url, status_dict):
                 )
                 session.add(video_obj)
             else:
-                # update if needed
+                # Update existing record if needed
                 video_obj.title = title
                 video_obj.upload_date = upload_date
                 video_obj.transcript_with_ts = transcript_with_ts
@@ -86,7 +88,7 @@ def download_channel_transcripts(channel_url, status_dict):
 
             session.commit()
 
-            # Ensure folder row for (channel_id, video_id)
+            # 5) Ensure folder association row
             folder_association = (
                 session.query(VideoFolder)
                 .filter_by(folder_name=channel_id, video_id=video_id)
@@ -113,10 +115,10 @@ def download_channel_transcripts(channel_url, status_dict):
 
 def get_channel_and_videos(channel_url):
     """
-    Use yt-dlp to list all videos from the channel (or playlist).
-    Returns:
-      channel_id (str) 
-      videos (list of dict) => each has "video_id", "title", "upload_date"
+    Use yt-dlp to list all videos from the channel or playlist (fast).
+    Return:
+      channel_id (str)
+      videos (list of dict): { "video_id", "title", "upload_date" }
     """
     cmd = ["yt-dlp", "--flat-playlist", "--dump-single-json", channel_url]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -143,38 +145,44 @@ def get_channel_and_videos(channel_url):
 
 def get_upload_date_for_video(video_id):
     """
-    Optionally use "yt-dlp --dump-single-json" or pytube to get 'YYYY-MM-DD'.
+    Attempt to get a real upload date in 'YYYY-MM-DD' via:
+      1) yt-dlp --dump-single-json https://www.youtube.com/watch?v=VIDEO_ID
+      2) fallback to pytube
+    Return date string or None.
     """
+    # Try a single-video metadata query via yt-dlp
     cmd = ["yt-dlp", "--dump-single-json", f"https://www.youtube.com/watch?v={video_id}"]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode == 0:
         try:
             info = json.loads(result.stdout)
-            raw_date = info.get("upload_date")
+            raw_date = info.get("upload_date")  # "YYYYMMDD"
             if raw_date and len(raw_date) == 8:
                 return f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:8]}"
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, KeyError):
             pass
 
-    # fallback
+    # Fallback to pytube
     try:
         yt = YouTube(f"https://www.youtube.com/watch?v={video_id}")
         if yt.publish_date:
             return yt.publish_date.strftime("%Y-%m-%d")
     except Exception:
         pass
+
     return None
 
 
 def get_transcript_for_video(video_id):
     """
-    Return a list of dicts: [{ "text":..., "start":..., "duration":... }, ...].
+    Return a list of dicts => [ {"text":..., "start":..., "duration":...}, ...].
+    Attempt youtube_transcript_api first, fallback to pytube SRT captions.
+    Raise Exception if not found.
     """
     try:
-        transcripts = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
-        return transcripts
+        return YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
     except NoTranscriptFound:
-        logger.info(f"No transcript found via youtube_transcript_api for '{video_id}', trying pytube.")
+        logger.info(f"No transcript via youtube_transcript_api for '{video_id}', trying pytube.")
         yt = YouTube(f"https://www.youtube.com/watch?v={video_id}")
         caption = None
         for code, c in yt.captions.items():
@@ -189,8 +197,8 @@ def get_transcript_for_video(video_id):
 
 def parse_srt(srt_text):
     """
-    Convert SRT to a list of dicts: 
-        [ {"text":..., "start":..., "duration":...}, ... ].
+    Convert raw SRT text => list of dicts:
+        [ { "text":..., "start":..., "duration":... }, ... ]
     """
     lines = srt_text.split('\n')
     entries = []
@@ -206,7 +214,7 @@ def parse_srt(srt_text):
 
             i += 1
             text_lines = []
-            while i < len(lines) and lines[i].strip() != '':
+            while i < len(lines) and lines[i].strip():
                 text_lines.append(lines[i].strip())
                 i += 1
 
@@ -220,20 +228,23 @@ def parse_srt(srt_text):
         i += 1
     return entries
 
+
 def srt_time_to_seconds(t_str):
     """
-    Parse 'HH:MM:SS,mmm' => total seconds float
+    Parse 'HH:MM:SS,mmm' => total seconds (float).
     e.g. "00:01:23,456" -> 83.456
     """
     h, m, s_milli = t_str.split(':')
     s, ms = s_milli.split(',')
     return int(h)*3600 + int(m)*60 + float(s) + float(ms)/1000.0
 
+
 def build_transcript_variants(transcript_entries):
     """
-    Given a list of { "text", "start", "duration" }, build:
-      1) transcript_with_ts  => lines like "[0.00s - 2.30s] Some text"
-      2) transcript_no_ts    => lines of just text
+    Given [ {"text", "start", "duration"}, ... ],
+    build two text variants:
+      1) transcript_with_ts => "[0.00s - 2.30s] Some text"
+      2) transcript_no_ts   => "Some text"
     Return (with_ts, no_ts).
     """
     lines_with_ts = []
@@ -242,7 +253,6 @@ def build_transcript_variants(transcript_entries):
         start = entry["start"]
         dur = entry["duration"]
         text = entry["text"]
-        # E.g. "[12.34s - 3.21s] Transcript line"
         line_with = f"[{start:.2f}s - {dur:.2f}s] {text}"
         lines_with_ts.append(line_with)
         lines_no_ts.append(text)
@@ -254,9 +264,8 @@ def build_transcript_variants(transcript_entries):
 
 def list_downloaded_videos(channel_id):
     """
-    Return a list of dicts describing the videos for the given channel,
-    querying the 'video_folders' and 'videos' tables from the DB.
-    Each dict includes { "video_id", "title", "upload_date" }.
+    Return list of dicts { "video_id", "title", "upload_date" }
+    by querying the 'video_folders' + 'videos' tables in the DB.
     """
     session = SessionLocal()
     try:
