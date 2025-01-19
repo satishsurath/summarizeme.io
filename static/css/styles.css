@@ -23,3 +23,26 @@ body {
   ul {
     list-style-type: circle;
   }
+
+  summary {
+    font-weight: bold;
+    font-size: 1.5em;
+  }
+
+
+  pre {
+    white-space: pre-wrap;
+    border:1px solid #ccc;
+    padding:10px;
+  }
+  .collapsible {
+    cursor: pointer;
+    background: #ddd;
+    margin: 5px 0;
+    padding: 5px;
+  }
+  .content {
+    display: none;
+    border: 1px solid #ccc;
+    padding: 5px;
+  }

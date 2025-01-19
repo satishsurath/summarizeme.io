@@ -11,10 +11,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const summaryStatus = document.getElementById("summaryStatus");
 
   let currentPage = 1;
-  let pageSize = 5;
+  let pageSize = 50;
   let totalVideos = 0;
   let currentVideos = [];
 
+  // Dynamically load available Ollama models
+  loadOllamaModels();
+
+  // Initial load
   loadVideos();
 
   applyFilterBtn.addEventListener("click", () => {
@@ -47,16 +51,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     summaryStatus.innerText = "Starting summarization...";
+
     try {
-      const res = await fetch("/api/summarize", {
+      const chosenModel = methodSelect.value;
+      const res = await fetch("/api/summarize_v2", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          channel_id: channelId,
+          channel_name: channel_name, // the variable from <script> above
           video_ids: selected,
-          method: methodSelect.value
+          model: chosenModel
         })
       });
+
       const data = await res.json();
       if (data.status === "initiated") {
         summaryStatus.innerText = `Summarization started. Task ID: ${data.task_id}`;
@@ -71,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadVideos() {
     const filterVal = filterInput.value;
     const sortVal = sortSelect.value;
-    const url = `/api/videos/${channelId}?page=${currentPage}&page_size=${pageSize}&sort_by=${sortVal}&filter=${encodeURIComponent(filterVal)}`;
+    const url = `/api/videos/${channel_name}?page=${currentPage}&page_size=${pageSize}&sort_by=${sortVal}&filter=${encodeURIComponent(filterVal)}`;
 
     videosList.innerHTML = "Loading...";
     try {
@@ -91,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
       videosList.innerHTML = "<p>No videos found.</p>";
       return;
     }
-    // Build the table with Bootstrap classes
+
     let html = `
       <table class="table table-hover table-striped align-middle">
         <thead>
@@ -99,23 +106,31 @@ document.addEventListener("DOMContentLoaded", () => {
             <th><input type="checkbox" id="selectAll" /> Select</th>
             <th>Title</th>
             <th>Date</th>
-            <th>OpenAI Summary</th>
-            <th>Ollama Summary</th>
+            <th>Existing Summaries</th>
             <th>Transcript</th>
           </tr>
         </thead>
         <tbody>
     `;
+
     videos.forEach(v => {
-      const openaiLink = v.openai_summary_exists 
-        ? `<a href="/summaries/${channelId}/openai/${v.video_id}" target="_blank">View</a>` 
-        : "N/A";
+      let summariesList = "";
+      if (v.summaries_v2 && v.summaries_v2.length > 0) {
+        summariesList = v.summaries_v2.map(s => {
+          // Provide a link to the new route /summaries_v2/<s.id>
+          return `
+            <div>
+              <a href="/summaries_v2/${s.id}" target="_blank">
+                ${s.model_name} (ID: ${s.id})
+              </a>
+            </div>
+          `;
+        }).join("");
+      } else {
+        summariesList = `<em>No Summaries</em>`;
+      }
 
-      const ollamaLink = v.ollama_summary_exists 
-        ? `<a href="/summaries/${channelId}/ollama/${v.video_id}" target="_blank">View</a>` 
-        : "N/A";
-
-      const transcriptLink = `<a href="/summaries/${channelId}/transcript/${v.video_id}" target="_blank">View</a>`;
+      const transcriptLink = `<a href="/summaries/${channel_name}/transcript/${v.video_id}" target="_blank">View</a>`;
 
       html += `
         <tr>
@@ -128,24 +143,43 @@ document.addEventListener("DOMContentLoaded", () => {
           </td>
           <td>${v.title}</td>
           <td>${v.upload_date}</td>
-          <td>${openaiLink}</td>
-          <td>${ollamaLink}</td>
+          <td>${summariesList}</td>
           <td>${transcriptLink}</td>
         </tr>
       `;
     });
+
     html += "</tbody></table>";
     videosList.innerHTML = html;
 
-    // Add event listener for "Select All" checkbox
+    // "Select All" logic
     const selectAllCheckbox = document.getElementById("selectAll");
     const videoCheckboxes = document.querySelectorAll(".videoCheckbox");
-
     selectAllCheckbox.addEventListener("change", () => {
       const isChecked = selectAllCheckbox.checked;
       videoCheckboxes.forEach(checkbox => {
         checkbox.checked = isChecked;
       });
     });
+  }
+
+  // Dynamically load available Ollama models
+  async function loadOllamaModels() {
+    try {
+      const resp = await fetch("/api/ollama/models");
+      const data = await resp.json();
+      methodSelect.innerHTML = ""; // clear existing
+
+      data.data.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.id;
+        methodSelect.appendChild(opt);
+      });
+    } catch (err) {
+      console.error("Failed to load Ollama models:", err);
+      // fallback
+      methodSelect.innerHTML = "<option value='phi4:latest'>phi4:latest</option>";
+    }
   }
 });
