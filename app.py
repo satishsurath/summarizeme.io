@@ -10,9 +10,6 @@ from dotenv import load_dotenv
 
 from datetime import datetime
 from youtube_utils import download_channel_transcripts, list_downloaded_videos
-from openai_summarizer import summarize_transcript_openai
-from ollama_summarizer import summarize_transcript_ollama
-from ollama_phi4_transcript_enhancer import transcript_enhancer_ollama
 from summarizer_v2 import chunk_transcript, build_prompts_for_chunk, ollama_generate_chunk
 
 from sqlalchemy import create_engine
@@ -20,11 +17,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
 
 # If you store your models and sync code in separate modules:
-from sync_service.models import Base, Video, VideoFolder, Summary, SummariesV2, SyncJob
-from sync_service.sync import run_sync  # Contains the run_sync() function
-
-# Import your new sync function
-from sync_service.embedding_sync import run_embedding_sync
+from db.models import Base, Video, VideoFolder, SummariesV2
 
 
 
@@ -48,13 +41,8 @@ OLLAMA_URL = f"http://{ollama_host}:11434"
 # In-memory storage for statuses (for demo). 
 # For production, use a database or a caching layer (Redis).
 download_statuses = {}
-summarize_statuses = {}
 summarize_v2_statuses = {}
 
-DATA_DIR = os.getenv("DATA_DIR")
-if DATA_DIR is None:
-    DATA_DIR = "data/channels"  # Base directory for channel data
-print(f"DATA_DIR: {DATA_DIR}")
 
 @app.route('/')
 def index():
@@ -248,69 +236,6 @@ def api_get_videos(channel_name):
 
     finally:
         session.close()
-#################################################
-####### Old routes for summarizing videos #######
-#################################################
-
-@app.route('/api/summarize', methods=['POST'])
-def api_summarize():
-    """
-    Summarize one or more videos' transcripts using either OpenAI or Ollama.
-    Expects JSON:
-    {
-      "channel_id": "...",
-      "video_ids": ["id1", "id2", ...],
-      "method": "openai" or "ollama"
-    }
-    """
-    data = request.get_json()
-    if not all(k in data for k in ("channel_id", "video_ids", "method")):
-        return jsonify({"status": "error", "message": "Missing required fields"}), 400
-
-    channel_id = data['channel_id']
-    video_ids = data['video_ids']
-    method = data['method']
-
-    task_id = f"sum_{len(summarize_statuses)+1}"
-    summarize_statuses[task_id] = {
-        "status": "in_progress",
-        "processed": 0,
-        "total": len(video_ids),
-        "errors": []
-    }
-
-    def run_summarize():
-        try:
-            for vid in video_ids:
-                # Summarize each transcript
-                if method == "openai":
-                    summarize_transcript_openai(channel_id, vid)
-                elif method == "ollama":
-                    summarize_transcript_ollama(channel_id, vid)
-                else:
-                    transcript_enhancer_ollama(channel_id, vid)
-                summarize_statuses[task_id]["processed"] += 1
-            summarize_statuses[task_id]["status"] = "completed"
-        except Exception as e:
-            logger.error(f"Error in summarization: {e}")
-            summarize_statuses[task_id]["status"] = "failed"
-            summarize_statuses[task_id]["errors"].append(str(e))
-
-    thread = threading.Thread(target=run_summarize)
-    thread.start()
-
-    return jsonify({"status": "initiated", "task_id": task_id})
-
-
-@app.route('/api/summarize/status/<task_id>', methods=['GET'])
-def api_summarize_status(task_id):
-    """
-    Returns summarization progress.
-    """
-    status = summarize_statuses.get(task_id)
-    if not status:
-        return jsonify({"status": "error", "message": "Invalid task ID"}), 404
-    return jsonify(status)
 
 #################################################
 ####### New routes for summarizing videos #######
@@ -615,17 +540,6 @@ def api_all_tasks():
         })
 
     # For summarize tasks
-    for task_id, stat in summarize_statuses.items():
-        all_tasks.append({
-            "task_id": task_id,
-            "type": "summarize",
-            "status": stat["status"],
-            "processed": stat["processed"],
-            "total": stat["total"],
-            "errors": stat["errors"]
-        })
-
-    # For summarize tasks
     for task_id, stat in summarize_v2_statuses.items():
         all_tasks.append({
             "task_id": task_id,
@@ -637,72 +551,6 @@ def api_all_tasks():
         })
 
     return jsonify(all_tasks)
-
-
-@app.route('/api/sync-files', methods=['POST'])
-def api_sync_files():
-    """
-    Trigger a file-to-DB sync. Spawns a background thread so we don't block.
-    Returns immediate JSON indicating the sync has started.
-    
-    Example POST body: {}
-    (You could allow optional parameters if needed)
-    """
-    # You could add logic to prevent multiple concurrent syncs, 
-    # or accept "force" parameters, etc. For simplicity, we just spawn a new thread each time.
-
-    def sync_thread():
-        # Call your sync logic
-        run_sync()  # This function updates the sync_jobs table with 'in_progress' -> 'completed' or 'failed'.
-
-    thread = threading.Thread(target=sync_thread, daemon=True)
-    thread.start()
-
-    return jsonify({"status": "initiated"}), 202
-
-
-# Example route to trigger embedding
-@app.route("/api/embed-db", methods=["POST"])
-def api_embed_db():
-    """
-    Trigger the pgai vectorizer creation or update in a background thread.
-    """
-    def embedding_thread():
-        run_embedding_sync()
-
-    thread = threading.Thread(target=embedding_thread, daemon=True)
-    thread.start()
-
-    return jsonify({"status": "initiated"}), 202
-
-@app.route('/api/sync-jobs/current', methods=['GET'])
-def api_sync_jobs_current():
-    """
-    Returns the most recent sync job from the 'sync_jobs' table
-    or a message if none exist.
-    """
-    # For production, you might want a session manager function or a shared session.
-    DB_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/mydb")
-    engine = create_engine(DB_URL)
-    SessionLocal = sessionmaker(bind=engine)
-    session = SessionLocal()
-
-    # Grab the most recent job (assuming auto-increment 'id', descending)
-    job = session.query(SyncJob).order_by(SyncJob.id.desc()).first()
-    if not job:
-        session.close()
-        return jsonify({"status": "no_jobs", "message": "No sync jobs found."}), 200
-
-    # Convert to JSON
-    job_data = {
-        "id": job.id,
-        "start_time": job.start_time.isoformat() if job.start_time else None,
-        "end_time": job.end_time.isoformat() if job.end_time else None,
-        "status": job.status,
-        "message": job.message,
-    }
-    session.close()
-    return jsonify(job_data), 200
 
 
 @app.route("/api/ollama/models", methods=["GET"])
@@ -725,73 +573,6 @@ def api_ollama_models():
     except Exception as e:
         logger.error(f"Failed to list Ollama models: {e}")
         return jsonify({"models": []}), 500
-
-
-
-@app.route('/summaries/<channel_id>/<method>/<video_id>')
-def view_summary(channel_id, method, video_id):
-    """
-    Displays the summary (if openai/ollama) + original transcript in summary.html.
-    The transcript is shown in two collapsible sections:
-      1) With timestamps
-      2) Without timestamps
-    If method='transcript', we skip the .md file loading.
-    """
-    # 1. Load the transcript JSON
-    transcript_file = os.path.join(DATA_DIR, channel_id, "transcripts", f"{video_id}.json")
-    if not os.path.exists(transcript_file):
-        abort(404, f"Transcript file not found for video {video_id}")
-
-    with open(transcript_file, "r", encoding="utf-8") as f:
-        vid_data = json.load(f)
-    # vid_data contains "title", "upload_date", "transcript" (list of items)
-
-    # Build human-readable transcript variants
-    transcripts = vid_data.get("transcript", [])
-    transcript_text_with_timestamps = []
-    transcript_text_no_timestamps = []
-
-    for item in transcripts:
-        start = item.get("start", 0)
-        dur = item.get("duration", 0)
-        text = item.get("text", "")
-        # with timestamps
-        line_with_ts = f"[{start:.2f}s - {dur:.2f}s] {text}"
-        transcript_text_with_timestamps.append(line_with_ts)
-        # without timestamps
-        transcript_text_no_timestamps.append(text)
-
-    # Join them
-    transcript_with_ts_joined = "\n".join(transcript_text_with_timestamps)
-    transcript_no_ts_joined = "\n".join(transcript_text_no_timestamps)
-
-    # 2. If method is "openai" or "ollama", load the summary file
-    summary_html = None
-    if method in ("openai", "ollama"):
-        summary_file = os.path.join(DATA_DIR, channel_id, f"summaries_{method}", f"{video_id}.md")
-        if os.path.exists(summary_file):
-            with open(summary_file, "r", encoding="utf-8") as sf:
-                md_text = sf.read()
-            summary_html = markdown.markdown(md_text)
-        else:
-            summary_html = "<em>No summary found for this method.</em>"
-    elif method == "transcript":
-        # no summary needed
-        summary_html = None
-    else:
-        abort(400, "Invalid method. Must be 'openai', 'ollama', or 'transcript'")
-
-    return render_template(
-        "summary.html",
-        channel_id=channel_id,
-        video_id=video_id,
-        method=method,
-        title=vid_data.get("title", "Untitled"),
-        upload_date=vid_data.get("upload_date", "UnknownDate"),
-        summary_html=summary_html,
-        transcript_with_ts=transcript_with_ts_joined,
-        transcript_no_ts=transcript_no_ts_joined
-    )
 
 
 @app.route("/summaries_v2/<int:summary_id>", methods=["GET"])

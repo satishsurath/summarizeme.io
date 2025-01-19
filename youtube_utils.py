@@ -11,7 +11,7 @@ from pytube import YouTube
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from sync_service.models import Base, Video, VideoFolder
+from db.models import Base, Video, VideoFolder
 
 logger = logging.getLogger(__name__)
 

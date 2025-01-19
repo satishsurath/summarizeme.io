@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 
 # If you keep the models in a separate module (e.g. sync_service/models.py),
 # update the import path accordingly:
-from sync_service.models import Base, Video, VideoFolder, Summary, SyncJob
+from db.models import Base, Video, VideoFolder, SummariesV2
 
 # If using dotenv to load .env variables:
 try:

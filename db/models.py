@@ -21,8 +21,6 @@ class Video(Base):
 
     # Relationship to summaries and folder associations
     folders = relationship("VideoFolder", back_populates="video")
-    summaries = relationship("Summary", back_populates="video")
-
     # The new V2 Summaries relationship:
     summaries_v2 = relationship("SummariesV2", back_populates="video")
 
@@ -35,19 +33,6 @@ class VideoFolder(Base):
 
     video = relationship("Video", back_populates="folders")
 
-class Summary(Base):
-    __tablename__ = "summaries"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    video_id = Column(String(50), ForeignKey("videos.video_id"))
-    summary_type = Column(String(50))  # e.g. "openai" or "ollama"
-    model_name = Column(String(50))    # e.g. "gpt-4" or "llama3.2"
-    summary_text = Column(Text)
-    tokens_count = Column(Integer, default=0)
-    file_path = Column(String(512))    # local path
-    file_mtime = Column(DateTime)      # last modification time from file system
-    date_generated = Column(DateTime)  # optional, e.g. from summary's metadata
-
-    video = relationship("Video", back_populates="summaries")
 
 
 # The NEW Summaries v2 table (without the old columns),
