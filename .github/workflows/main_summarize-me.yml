@@ -1,34 +1,41 @@
-name: CI Pipeline
+name: CI-CD
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]  # or your production branch
 
 jobs:
   build-and-deploy:
     runs-on: self-hosted
-    
+    # If you named your runner group something else, or labeled it, adjust accordingly
     steps:
-      - name: Check out repository
+      - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
         with:
-          python-version: '3.10'
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
+      - name: Build and push Docker image
         run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          docker build -t ghcr.io/${{ github.repository }}/summarizeme.io:latest .
+          docker push ghcr.io/${{ github.repository }}/summarizeme.io:latest
 
-      - name: Deploy code & restart service
+      - name: Deploy container
         run: |
-          # e.g. copy your updated code to /home/runner-user/app
-          #cp -R . /home/runner-user/app
-
-          # Now restart the systemd service
-          sudo systemctl stop myflaskapp || true
-          sudo systemctl start myflaskapp
-          # or: sudo systemctl restart myflaskapp
+          # Pull the newest image
+          docker pull ghcr.io/${{ github.repository }}/summarizeme.io:latest
+          # Stop old container (if running)
+          docker stop summarizeme.io || true
+          docker rm summarizeme.io || true
+          # Run new container
+          docker run -d --name summarizeme.io \
+            --env-file=.env \
+            -p 8000:8000 \
+            ghcr.io/${{ github.repository }}/summarizeme.io:latest
