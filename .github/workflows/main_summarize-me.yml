@@ -24,13 +24,13 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/summarizeme.io:latest .
-          docker push ghcr.io/${{ github.repository }}/summarizeme.io:latest
+          docker build -t ghcr.io/${{ github.repository }}:latest .
+          docker push ghcr.io/${{ github.repository }}:latest
 
       - name: Deploy container
         run: |
           # Pull the newest image
-          docker pull ghcr.io/${{ github.repository }}/summarizeme.io:latest
+          docker pull ghcr.io/${{ github.repository }}:latest
           # Stop old container (if running)
           docker stop summarizeme.io || true
           docker rm summarizeme.io || true
