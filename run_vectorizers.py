@@ -23,33 +23,7 @@ def main():
     cur = conn.cursor()
 
     try:
-        # # 2) Ensure pgai extension installed
-        # print("[INFO] Ensuring pgai extension is installed...")
-        # cur.execute("CREATE EXTENSION IF NOT EXISTS ai CASCADE;")
-        # conn.commit()
-
-        # # 3) Add 'video_title' column to summaries_v2 if not present
-        # print("[INFO] Adding 'video_title' column to summaries_v2 if it doesn't exist...")
-        # add_col_sql = """
-        # ALTER TABLE public.summaries_v2
-        # ADD COLUMN video_title VARCHAR(512);
-        # """
-        # cur.execute(add_col_sql)
-        # conn.commit()
-
-        # 4) Populate 'video_title' in summaries_v2 from videos
-        print("[INFO] Populating 'video_title' from videos.title ...")
-        update_titles_sql = """
-        UPDATE public.summaries_v2 s
-           SET video_title = v.title
-          FROM public.videos v
-         WHERE s.video_id = v.video_id
-           AND (s.video_title IS NULL OR s.video_title = '');
-        """
-        cur.execute(update_titles_sql)
-        conn.commit()
-
-        # 5) Create vectorizer for transcript (videos.transcript_no_ts).
+        # 1) Create vectorizer for transcript (videos.transcript_no_ts).
         #    This might already exist, but we’ll show it for completeness.
         transcript_sql = f"""
         SELECT ai.create_vectorizer(
@@ -72,7 +46,7 @@ def main():
         );
         """
 
-        # 6) Create vectorizers for each summaries_v2 column.
+        # 2) Create vectorizers for each summaries_v2 column.
         #    Because 'summaries_v2' has a PK (id), this will succeed.
         #    We can reference $video_title and $video_id in the formatting template.
 
