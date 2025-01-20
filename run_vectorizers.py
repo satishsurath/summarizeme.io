@@ -23,6 +23,12 @@ def main():
     cur = conn.cursor()
 
     try:
+
+        # 2) Ensure pgai extension installed
+        print("[INFO] Ensuring pgai extension is installed...")
+        cur.execute("CREATE EXTENSION IF NOT EXISTS ai CASCADE;")
+        conn.commit()
+
         # 1) Create vectorizer for transcript (videos.transcript_no_ts).
         #    This might already exist, but we’ll show it for completeness.
         transcript_sql = f"""
