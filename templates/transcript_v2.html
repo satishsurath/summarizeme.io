@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block content %}
+  <h1>Transcript: (Video: {{ video.title }})</h1>
+  <p><strong>Video ID:</strong> {{ video.video_id }}</p>
+  
+  <hr/>
+  
+  <h2>Transcript (from the videos table)</h2>
+
+<!-- Collapsible for "no timestamps" -->
+<div class="collapsible" onclick="toggleContent('noTsContent')">
+    Show/Hide Transcript (no timestamps) <svg onclick="copyToClipboard('noTsContent')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg>
+  </div>
+  <div id="noTsContent" class="content">
+    <pre>{{ video.transcript_no_ts }}</pre>
+  </div>
+
+  <!-- Collapsible for "with timestamps" -->
+  <div class="collapsible" onclick="toggleContent('withTsContent')">
+    Show/Hide Transcript (with timestamps) <svg onclick="copyToClipboard('withTsContent')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg>
+  </div>
+  <div id="withTsContent" class="content">
+    <pre>{{ video.transcript_with_ts }}</pre>
+  </div>
+
+  
+
+  <script>
+  function toggleContent(id) {
+    const elem = document.getElementById(id);
+    if (elem.style.display === "none" || !elem.style.display) {
+      elem.style.display = "block";
+    } else {
+      elem.style.display = "none";
+    }
+  }
+
+    /**
+     * Copies the content of an element with the given ID to the clipboard.
+     * @param {string} elementId - The ID of the element whose content is to be copied.
+     */
+    function copyToClipboard(elementId) {
+      const element = document.getElementById(elementId);
+      if (!element) {
+        alert('Element not found.');
+        return;
+      }
+  
+      const content = element.innerText || element.textContent;
+  
+      navigator.clipboard.writeText(content).then(
+        function () {
+          //alert('Content copied to clipboard!');
+          console.log('Content copied to clipboard:', content);
+        },
+        function (err) {
+          alert('Failed to copy content: ', err);
+          console.error('Failed to copy content:', err);
+        }
+      );
+    }
+  </script>
+{% endblock %}

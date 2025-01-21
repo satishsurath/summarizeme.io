@@ -130,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
         summariesList = `<em>No Summaries</em>`;
       }
 
-      const transcriptLink = `<a href="/summaries/${channel_name}/transcript/${v.video_id}" target="_blank">View</a>`;
+      const transcriptLink = `<a href="/transcript/${v.video_id}">View</a>`;
 
       html += `
         <tr>

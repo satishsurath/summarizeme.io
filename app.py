@@ -385,8 +385,6 @@ def api_summarize_v2_status(task_id):
     return jsonify(status)
 
 
-
-
 @app.route("/api/channels", methods=["GET"])
 def api_list_channels():
     session = SessionLocal()
@@ -601,6 +599,30 @@ def view_summary_v2(summary_id):
         )
     finally:
         session.close()
+
+
+@app.route("/transcript/<video_id>")
+def view_transcript_v2(video_id):
+    """
+    Fetch Video Transcript by ID, 
+    and render a 'summary_v2.html' template.
+    """
+    session = SessionLocal()
+    try:
+        video_obj = session.query(Video).get(video_id)
+        if not video_obj:
+            return f"Video with ID {video_id} not found.", 404
+        
+        video = video_obj  # Because SummariesV2.video is the relationship
+
+        return render_template(
+            "transcript_v2.html",
+            video=video
+        )
+    finally:
+        session.close()
+
+
 #############################################################################
 # Now define your new routes for embedded-channels, chat-channel, chat-video
 #############################################################################
