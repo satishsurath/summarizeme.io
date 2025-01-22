@@ -100,10 +100,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     let html = `
-      <table class="table table-hover table-striped align-middle">
+      <table>
         <thead>
           <tr>
-            <th><input type="checkbox" id="selectAll" /> Select</th>
+            <th><input type="checkbox" id="selectAll" class="form-check-input videoCheckbox" />&nbsp;&nbsp;All </th>
             <th>Title</th>
             <th>Date</th>
             <th>Existing Summaries</th>

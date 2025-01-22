@@ -5,27 +5,32 @@
   <p>Channel ID: {{ channel_name }}</p>
 
   <!-- Filter & Sort Controls -->
+  <div id="videoFilterBar">
   <div class="row g-3 align-items-end mb-3">
     <div class="col-12 col-sm-6 col-md-auto">
       <label for="filterInput" class="form-label">Filter Title:</label>
       <input type="text" id="filterInput" class="form-control" />
     </div>
     <div class="col-12 col-sm-6 col-md-auto">
+      
       <label for="sortSelect" class="form-label">Sort By:</label>
       <select id="sortSelect" class="form-select">
         <option value="title">Title</option>
         <option value="date">Upload Date</option>
       </select>
-    </div>
+    
+  </div>
     <div class="col-12 col-md-auto">
       <button id="applyFilterBtn" class="btn btn-primary w-100 w-md-auto">Apply</button>
     </div>
   </div>
+</div>
 
   <!-- Videos List (table is rendered via JS) -->
   <div id="videosList" class="table-responsive"></div>
 
   <!-- Pagination Controls -->
+  <div id="paginationControls"> 
   <div class="row g-3 align-items-center mt-4">
     <div class="col-auto">
       <button id="prevPageBtn" class="btn btn-secondary">Previous</button>
@@ -37,9 +42,11 @@
       <button id="nextPageBtn" class="btn btn-secondary">Next</button>
     </div>
   </div>
+</div>
 
   <!-- Summarization Section -->
   <div class="mt-4">
+    <div id="summarizeSection">
     <h3>Summarize Selected Videos</h3>
     <div class="row g-2 mb-3">
       <div class="col-auto">
@@ -53,6 +60,7 @@
         <button id="summarizeBtn" class="btn btn-success">Summarize</button>
       </div>
     </div>
+  </div>
     <div id="summaryStatus"></div>
   </div>
 </div>

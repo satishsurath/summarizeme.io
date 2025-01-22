@@ -1,48 +1,342 @@
+/* -------------------------
+   Base Light Styles
+--------------------------*/
+
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-  }
-  
-  header nav a {
-    margin-right: 10px;
-    text-decoration: none;
-    color: blue;
-  }
-  
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-top: 10px;
-  }
-  
-  th, td {
-    border: 1px solid #ccc;
-    padding: 8px;
-  }
+  font-family: Arial, sans-serif;
+  margin: 20px;
+}
 
-  ul {
-    list-style-type: circle;
-  }
+header nav a {
+  margin-right: 10px;
+  text-decoration: none;
+  color: blue;
+}
 
-  summary {
-    font-weight: bold;
-    font-size: 1.5em;
-  }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 10px;
+}
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  vertical-align: middle; /* Align text mid for .align-middle */
+}
 
+ul {
+  list-style-type: circle;
+}
 
-  pre {
-    white-space: pre-wrap;
-    border:1px solid #ccc;
-    padding:10px;
-  }
-  .collapsible {
-    cursor: pointer;
-    background: #ddd;
-    margin: 5px 0;
-    padding: 5px;
-  }
-  .content {
-    display: none;
-    border: 1px solid #ccc;
-    padding: 5px;
-  }
+summary {
+  font-weight: bold;
+  font-size: 1.5em;
+}
+
+pre {
+  white-space: pre-wrap;
+  border: 1px solid #ccc;
+  padding: 10px;
+}
+
+.collapsible {
+  cursor: pointer;
+  background: #ddd;
+  margin: 5px 0;
+  padding: 5px;
+}
+.content {
+  display: none;
+  border: 1px solid #ccc;
+  padding: 5px;
+}
+
+/* -------------------------
+   VIDEO PAGE (videos.html) STYLES
+--------------------------*/
+
+/* Container around filter and sorting controls */
+#videoFilterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Filter input */
+#filterInput {
+  width: 200px;
+  padding: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Sort dropdown */
+#sortSelect {
+  padding: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-width: 130px;
+}
+
+/* Apply filter button */
+#applyFilterBtn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Pagination controls container */
+#paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* Page info text */
+#pageInfo {
+  font-weight: 500;
+}
+
+/* Prev/Next buttons */
+#prevPageBtn,
+#nextPageBtn {
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* Summarize button & model select */
+#summarizeSection {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#methodSelect {
+  padding: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+#summarizeBtn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Summary status text area */
+#summaryStatus {
+  margin-top: 0.5rem;
+  color: #666;
+  min-height: 1.5em;
+}
+
+/* The main videosList area */
+#videosList {
+  margin-top: 1rem;
+  min-height: 200px; /* So doesn't collapse if empty */
+}
+
+/* Additional table styling in #videosList */
+#videosList table {
+  border: 1px solid #ccc;
+}
+
+/* 'Select All' checkbox */
+#selectAll {
+  transform: scale(1.2);
+  cursor: pointer;
+}
+
+/* Per-video checkboxes */
+.videoCheckbox {
+  transform: scale(1.2);
+  cursor: pointer;
+}
+
+/* -------------------------
+   DARK MODE OVERRIDES
+--------------------------*/
+
+.dark-mode {
+  background-color: #1f1f1f; /* Main background */
+  color: #ddd;              /* Off-white text */
+
+  /* Force Bootstrap’s table variables to dark mode values */
+  --bs-table-bg: #222 !important;
+  --bs-table-striped-bg: #2a2a2a !important;
+  --bs-table-hover-bg: #333 !important;
+  --bs-table-color: #ddd !important;
+  --bs-table-border-color: #444 !important;
+
+}
+
+/* Keep container backgrounds transparent or consistent */
+.dark-mode body,
+.dark-mode .container,
+.dark-mode .row,
+.dark-mode .col-12 {
+  background-color: transparent;
+  color: inherit;
+}
+
+/* Links in dark mode */
+.dark-mode a {
+  color: #a8cfff;
+}
+.dark-mode a:hover {
+  color: #d0e0ff;
+  text-decoration: underline;
+}
+
+/* Navbar overrides */
+.dark-mode .navbar,
+.dark-mode .navbar-light.bg-light {
+  background-color: #2c2c2c !important;
+  color: #ddd !important;
+}
+.dark-mode .navbar .nav-link {
+  color: #ddd !important;
+}
+.dark-mode .navbar .nav-link:hover {
+  color: #fff !important;
+}
+
+/* Inputs, buttons, textareas in dark mode */
+.dark-mode input,
+.dark-mode button,
+.dark-mode textarea {
+  background-color: #333;
+  color: #ddd;
+  border: 1px solid #555;
+}
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: #999;
+}
+
+/* Borders, hr, etc. */
+.dark-mode hr {
+  border-color: #444;
+}
+.dark-mode .border {
+  border-color: #444 !important;
+}
+
+/* Lists */
+.dark-mode ul,
+.dark-mode ol {
+  color: #ddd;
+}
+
+/* SVG icons */
+.dark-mode svg path {
+  fill: #ddd;
+  stroke: none;
+}
+.dark-mode .edit-icon svg path,
+.dark-mode .delete-icon svg path,
+.dark-mode .chat-icon svg path {
+  fill: #ddd;
+}
+
+/* Collapsibles */
+.dark-mode .collapsible {
+  background: #2c2c2c;
+  color: #ddd;
+}
+.dark-mode .content {
+  background: #2f2f2f;
+  color: #ddd;
+}
+
+/* Summaries or details blocks */
+.dark-mode details {
+  background-color: #2a2a2a;
+  color: #ddd;
+  border: 1px solid #444;
+  margin-bottom: 1em;
+}
+.dark-mode summary {
+  color: #ddd;
+}
+.dark-mode pre {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: #ddd;
+}
+
+/* Dark mode form elements specific to videos.js */
+.dark-mode #filterInput,
+.dark-mode #sortSelect,
+.dark-mode #applyFilterBtn,
+.dark-mode #methodSelect,
+.dark-mode #summarizeBtn,
+.dark-mode #prevPageBtn,
+.dark-mode #nextPageBtn {
+  background-color: #333;
+  color: #ddd;
+  border: 1px solid #555;
+}
+
+.dark-mode #pageInfo {
+  color: #ddd;
+}
+.dark-mode #summaryStatus {
+  color: #bbb;
+}
+
+/* Table in dark mode */
+.dark-mode #videosList table {
+  border-color: #444;
+}
+.dark-mode #videosList th,
+.dark-mode #videosList td {
+  border-color: #444;
+  color: #ddd;
+}
+
+/* Adjust checkboxes in dark mode if needed */
+.dark-mode .videoCheckbox,
+.dark-mode #selectAll {
+  accent-color: #bbb;
+}
+
+/* Dark Mode overrides for Bootstrap tables */
+.dark-mode .table {
+  background-color: #222 !important;
+  color: #ddd;
+}
+.dark-mode .table th,
+.dark-mode .table td {
+  border-color: #444 !important;
+}
+.dark-mode .table thead th {
+  background-color: #333 !important;
+  color: #eee;
+  font-weight: 600;
+}
+.dark-mode .table-hover tbody tr:hover {
+  background-color: #333 !important;
+}
+.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+  background-color: #2a2a2a !important;
+}
+.dark-mode .table-striped tbody tr:nth-of-type(even) {
+  background-color: #222 !important;
+}
+.dark-mode .table-responsive {
+  background-color: transparent !important;
+  color: inherit;
+}
+.dark-mode input.form-check-input.videoCheckbox {
+  accent-color: #aaa;
+}
+
+.dark-mode .table-light,
+.dark-mode .bg-light {
+  background-color: #222 !important;
+  color: #ddd !important;
+}
