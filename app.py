@@ -669,6 +669,10 @@ def api_chat_channel(channel_name):
     data_type = data.get("data_type", "comprehensive_notes")
     model_name = data.get("model_name", "phi4:latest")  # default fallback
 
+    # temporary work around - if model_name = "deepseek-r1:32b" change it to "gemma2:27b"
+    if model_name == "deepseek-r1:32b":
+        model_name = "gemma2:27b"
+
     if not user_query:
         return jsonify({"answer": "No query provided."}), 400
 
