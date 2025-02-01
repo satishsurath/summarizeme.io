@@ -19,20 +19,15 @@ DB_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/mydb")
 engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(bind=engine)
 
-
 def download_channel_transcripts(channel_url, status_dict):
     """
-    - Use yt-dlp to get channel_id and list of videos (some might have 'UnknownDate').
-    - For each video:
-        1) If 'upload_date' == 'UnknownDate', try to fix it by fetching a real date.
-        2) Fetch transcripts
-        3) Build transcript_with_ts and transcript_no_ts
-        4) Upsert into 'videos' table
-        5) Ensure an association row in 'video_folders(folder_name=channel_id, video_id=...)'
-    - Update status_dict for progress
+    Download transcripts for all videos in a channel/playlist.
+    This updated version preserves the human-friendly folder_name if one already exists.
     """
-    Base.metadata.create_all(engine)  # Or manage migrations as appropriate
+    # Create tables if they don't exist (or use migrations in production)
+    Base.metadata.create_all(engine)
 
+    # Get the immutable channel/playlist id and video list from YouTube
     channel_id, videos = get_channel_and_videos(channel_url)
     total_videos = len(videos)
     status_dict["total"] = total_videos
@@ -41,20 +36,29 @@ def download_channel_transcripts(channel_url, status_dict):
 
     session = SessionLocal()
     try:
+        # Check if there is already a folder association for this playlist id.
+        existing_folder = session.query(VideoFolder).filter_by(original_playlist_id=channel_id).first()
+        if existing_folder:
+            # Use the existing (human-friendly) folder name.
+            human_playlist_name = existing_folder.folder_name
+        else:
+            # If no folder exists yet, use the playlist id as the name.
+            human_playlist_name = channel_id
+
         processed_count = 0
         for video_meta in videos:
             video_id = video_meta["video_id"]
             title = video_meta["title"]
             upload_date = video_meta["upload_date"]
 
-            # 1) Fix unknown date if possible
+            # Fix unknown upload date if possible
             if upload_date == "UnknownDate":
                 real_date = get_upload_date_for_video(video_id)
                 if real_date:
                     upload_date = real_date
                     video_meta["upload_date"] = real_date
 
-            # 2) Fetch transcripts
+            # Fetch transcripts for the video
             try:
                 transcripts = get_transcript_for_video(video_id)
             except Exception as e:
@@ -65,10 +69,10 @@ def download_channel_transcripts(channel_url, status_dict):
                 status_dict["processed"] = processed_count
                 continue
 
-            # 3) Convert transcripts => with_ts / no_ts
+            # Build both transcript variants
             transcript_with_ts, transcript_no_ts = build_transcript_variants(transcripts)
 
-            # 4) Upsert into 'videos'
+            # Upsert the video into the 'videos' table
             video_obj = session.query(Video).filter_by(video_id=video_id).first()
             if not video_obj:
                 video_obj = Video(
@@ -80,23 +84,21 @@ def download_channel_transcripts(channel_url, status_dict):
                 )
                 session.add(video_obj)
             else:
-                # Update existing record if needed
                 video_obj.title = title
                 video_obj.upload_date = upload_date
                 video_obj.transcript_with_ts = transcript_with_ts
                 video_obj.transcript_no_ts = transcript_no_ts
-
             session.commit()
 
-            # 5) Ensure folder association row
-            folder_association = (
-                session.query(VideoFolder)
-                .filter_by(folder_name=channel_id, video_id=video_id)
-                .first()
-            )
+            # Ensure a folder association row exists using the preserved human-friendly name.
+            folder_association = session.query(VideoFolder).filter_by(
+                original_playlist_id=channel_id,
+                video_id=video_id
+            ).first()
             if not folder_association:
                 folder_association = VideoFolder(
-                    folder_name=channel_id,
+                    folder_name=human_playlist_name,
+                    original_playlist_id=channel_id,
                     video_id=video_id,
                     last_modified=datetime.utcnow()
                 )
@@ -111,7 +113,6 @@ def download_channel_transcripts(channel_url, status_dict):
         status_dict["errors"].append(str(e))
     finally:
         session.close()
-
 
 def get_channel_and_videos(channel_url):
     """

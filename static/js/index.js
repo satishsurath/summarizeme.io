@@ -54,7 +54,15 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="delete-icon" data-channel="${chId}" style="cursor: pointer; margin-right: 10px;">
               <!-- Trash SVG, for example -->
               <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>
-            </span>     
+            </span>
+
+            <!-- New Refresh icon -->
+            <span class="refresh-icon" data-channel="${chId}" style="cursor: pointer; margin-right: 10px;">
+              <!-- SVG for refresh icon (use your preferred SVG) -->
+              <svg xmlns="http://www.w3.org/2000/svg" height="18" width="18" viewBox="0 0 24 24">
+                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 .34-.03.67-.08 1h2.02c.05-.33.06-.66.06-1 0-4.42-3.58-8-8-8zm-6 7c0-.34.03-.67.08-1H4.06c-.05.33-.06.66-.06 1 0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6z"/>
+              </svg>
+            </span>                 
             <span class="chat-icon" data-channel="${chId}" style="cursor: pointer; margin-right: 10px;">
             <a href="/chat-channel/${chId}"> <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z"/></svg></a>
             </span>                   
@@ -76,6 +84,10 @@ document.addEventListener("DOMContentLoaded", () => {
       // Bind events to delete icons
       document.querySelectorAll(".delete-icon").forEach(icon => {
         icon.addEventListener("click", handleDeleteClick);
+      });
+      // Bind events to refresh icons
+      document.querySelectorAll(".refresh-icon").forEach(icon => {
+        icon.addEventListener("click", handleRefreshClick);
       });
 
     } catch (err) {
@@ -203,6 +215,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+
+
+// 8. Handle Fresh Click
+function handleRefreshClick(event) {
+  const channelName = event.currentTarget.dataset.channel;
+  if (!channelName) return;
+  
+  if (!confirm(`Refresh channel "${channelName}" to check for new videos?`)) {
+    return;
+  }
+  
+  // Call the refresh API
+  fetch("/api/channels/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ channel_name: channelName })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === "initiated") {
+      alert(`Refresh initiated. Task ID: ${data.task_id}`);
+    } else {
+      alert(`Error refreshing channel: ${data.message}`);
+    }
+  })
+  .catch(err => {
+    alert(`Error refreshing channel: ${err}`);
+  });
+}
 
 
   // Load channels on page load

@@ -445,6 +445,7 @@ def api_rename_channel():
             }), 400
 
         # Perform the update (rename)
+        # Update only the folder_name field; original_playlist_id remains unchanged.
         session.query(VideoFolder).filter_by(folder_name=old_name).update({
             "folder_name": safe_new_name
         })
@@ -463,6 +464,66 @@ def api_rename_channel():
     finally:
         session.close()
 
+@app.route('/api/channels/refresh', methods=["POST"])
+def api_refresh_channel():
+    """
+    Refresh the channel using the immutable original_playlist_id.
+    Expects JSON: { "channel_name": "HumanFriendlyChannelName" }
+    """
+    data = request.get_json() or {}
+    channel_name_input = data.get("channel_name", "").strip()
+    if not channel_name_input:
+        return jsonify({"status": "error", "message": "Channel name missing"}), 400
+
+    session = SessionLocal()
+    try:
+        # Look up the channel by matching either the human-friendly name or the original_playlist_id.
+        folder_obj = session.query(VideoFolder).filter(
+            (VideoFolder.folder_name == channel_name_input) |
+            (VideoFolder.original_playlist_id == channel_name_input)
+        ).first()
+        # debug statement
+        print(f"folder_obj: {folder_obj}")
+        if not folder_obj:
+            # debug statement
+            print(f"Channel not found")
+            return jsonify({"status": "error", "message": "Channel not found"}), 404
+
+        # Preserve the human-friendly name.
+        human_playlist_name = folder_obj.folder_name
+        # Use the immutable original playlist ID (fallback to the human-friendly name if needed).
+        original_playlist_id = folder_obj.original_playlist_id or human_playlist_name
+
+        # Build the YouTube playlist URL using the original playlist id.
+        channel_url = f"https://www.youtube.com/playlist?list={original_playlist_id}"
+
+        # Generate a task ID using the human-friendly name.
+        task_id = f"refresh_{human_playlist_name}_{int(datetime.utcnow().timestamp())}"
+        download_statuses[task_id] = {
+            "status": "in_progress",
+            "processed": 0,
+            "total": 0,
+            "errors": []
+        }
+
+        def run_refresh():
+            try:
+                # This function (download_channel_transcripts) uses the updated logic:
+                # It checks for an existing folder association (using original_playlist_id)
+                # so that videos that already exist are not re-added.
+                download_channel_transcripts(channel_url, download_statuses[task_id])
+                download_statuses[task_id]["status"] = "completed"
+            except Exception as e:
+                logger.error(f"Error in channel refresh: {e}")
+                download_statuses[task_id]["status"] = "failed"
+                download_statuses[task_id]["errors"].append(str(e))
+
+        thread = threading.Thread(target=run_refresh, daemon=True)
+        thread.start()
+
+        return jsonify({"status": "initiated", "task_id": task_id})
+    finally:
+        session.close()
 @app.route('/api/channels/delete', methods=['POST'])
 def api_delete_channel():
     """
@@ -505,7 +566,7 @@ def api_delete_channel():
         usage_count = session.query(VideoFolder).filter_by(video_id=vid).count()
         if usage_count == 0:
             # If this video is no longer referenced, delete it and its summaries
-            session.query(Summary).filter_by(video_id=vid).delete()
+            session.query(SummariesV2).filter_by(video_id=vid).delete()
             session.query(Video).filter_by(video_id=vid).delete()
 
     session.commit()
