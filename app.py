@@ -3,7 +3,7 @@ import os
 import json
 import threading
 import logging
-from flask import Flask, request, jsonify, render_template, abort
+from flask import Flask, request, jsonify, render_template, abort, redirect, url_for, flash 
 import markdown
 import re # used for renaming the channel folder 
 from dotenv import load_dotenv
@@ -12,13 +12,17 @@ import psycopg2
 from datetime import datetime
 from youtube_utils import download_channel_transcripts, list_downloaded_videos
 from summarizer_v2 import chunk_transcript, build_prompts_for_chunk, ollama_generate_chunk
+from auth_utils import get_current_user
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
 
+from functools import wraps
+
 # If you store your models and sync code in separate modules:
-from db.models import Base, Video, VideoFolder, SummariesV2
+from db.models import Base, Video, VideoFolder, SummariesV2, User
+
 
 
 
@@ -43,6 +47,29 @@ OLLAMA_URL = f"http://{ollama_host}:11434"
 # For production, use a database or a caching layer (Redis).
 download_statuses = {}
 summarize_v2_statuses = {}
+
+# Define a decorator to require a specific role
+def require_role(allowed_roles):
+    """
+    Decorator that requires the current user to have one of allowed_roles.
+    Example usage:
+        @app.route("/admin")
+        @require_role(["admin"])
+        def admin_dashboard():
+            ...
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            email, role = get_current_user()
+            if not email:
+                # not authenticated
+                return abort(403, "Unauthorized")
+            if role not in allowed_roles:
+                return abort(403, f"User {email} (role={role}) not allowed.")
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 @app.route('/')
@@ -106,6 +133,7 @@ def videos_page(channel_name):
 
 
 @app.route('/api/channel/start', methods=['POST'])
+@require_role(["admin"]) # Only allow admins to start channel downloads
 def api_channel_start():
     """
     Start downloading transcripts for the entire channel.
@@ -402,6 +430,7 @@ def api_list_channels():
     return jsonify(folder_list)
 
 @app.route('/api/channels/rename', methods=['POST'])
+@require_role(["admin"]) # Only allow admins to rename channels
 def api_rename_channel():
     """
     Renames a channel in the database (video_folders.folder_name).
@@ -465,6 +494,7 @@ def api_rename_channel():
         session.close()
 
 @app.route('/api/channels/refresh', methods=["POST"])
+@require_role(["admin", "member"]) # Only allow admins and members to refresh channels
 def api_refresh_channel():
     """
     Refresh the channel using the immutable original_playlist_id.
@@ -524,7 +554,10 @@ def api_refresh_channel():
         return jsonify({"status": "initiated", "task_id": task_id})
     finally:
         session.close()
+
+
 @app.route('/api/channels/delete', methods=['POST'])
+@require_role(["admin"]) # Only allow admins to delete channels
 def api_delete_channel():
     """
     Deletes a channel (folder_name) from the database.
@@ -1020,6 +1053,81 @@ def view_summary_from_db(summary_id):
 
     return render_template("summary_view.html", summary=summary_obj)
 
+
+#############################################################################
+# Admin Routes
+#############################################################################
+
+@app.route("/admin-settings")
+@require_role(["admin"])
+def admin_settings():
+    # Example: A page to manage user roles
+    session = SessionLocal()
+    try:
+        users = session.query(User).all()
+        return render_template("admin_settings.html", users=users)
+    finally:
+        session.close()
+
+@app.route("/admin-update-role", methods=["POST"])
+@require_role(["admin"])
+def admin_update_role():
+    new_role = request.form.get("role")
+    user_id = request.form.get("user_id")
+
+    if not new_role or not user_id:
+        abort(400, "Missing parameters")
+
+    session = SessionLocal()
+    try:
+        user_obj = session.query(User).get(user_id)
+        if not user_obj:
+            abort(404, "User not found")
+        user_obj.role = new_role
+        session.commit()
+    finally:
+        session.close()
+
+    return redirect(url_for("admin_settings"))
+
+@app.route("/admin-add-user", methods=["POST"])
+@require_role(["admin"])  # Only admins can add new users
+def admin_add_user():
+    """
+    Endpoint to create a new user with a given email and role.
+    Receives form data: new_email, new_role
+    Redirects back to the admin settings page.
+    """
+    new_email = request.form.get("new_email", "").strip()
+    new_role = request.form.get("new_role", "reader").strip()
+
+    if not new_email:
+        flash("No email provided.", "error")
+        return redirect(url_for("admin_settings"))
+
+    # Basic validation (optional):
+    if "@" not in new_email:
+        flash("Invalid email format.", "error")
+        return redirect(url_for("admin_settings"))
+
+    session = SessionLocal()
+    try:
+        existing_user = session.query(User).filter_by(email=new_email).first()
+        if existing_user:
+            # Option 1: Simply update role if user exists
+            existing_user.role = new_role
+            session.commit()
+            flash(f"Updated existing user '{new_email}' to role '{new_role}'.", "info")
+        else:
+            # Option 2: Create a new user record
+            new_user = User(email=new_email, role=new_role)
+            session.add(new_user)
+            session.commit()
+            flash(f"Created new user '{new_email}' with role '{new_role}'.", "success")
+    finally:
+        session.close()
+
+    return redirect(url_for("admin_settings"))
 
 if __name__ == '__main__':
     # For local dev

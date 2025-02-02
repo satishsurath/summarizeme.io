@@ -59,3 +59,9 @@ class SyncJob(Base):
     end_time = Column(DateTime)
     status = Column(String(50), default="in_progress") # in_progress, completed, failed
     message = Column(Text)
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(255), unique=True, nullable=False)
+    role = Column(String(50), default="reader")  # e.g. possible roles: "admin", "member", "reader"
