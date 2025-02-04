@@ -162,14 +162,11 @@ def api_channel_start():
     }
 
     def run_download():
-        session = SessionLocal()
         try:
             # This function now ensures that for every video,
             # a row in video_folders(folder_name=<channel_id>, video_id=...) is inserted
             download_channel_transcripts(channel_url, download_statuses[task_id])
             download_statuses[task_id]["status"] = "completed"
-        finally:
-            session.close()
         except Exception as e:
             logger.error(f"Error in channel download: {e}")
             download_statuses[task_id]["status"] = "failed"
