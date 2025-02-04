@@ -16,7 +16,12 @@ from db.models import Base, Video, VideoFolder
 logger = logging.getLogger(__name__)
 
 DB_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/mydb")
-engine = create_engine(DB_URL)
+#engine = create_engine(DB_URL)
+engine = create_engine(
+    DB_URL, 
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=1800)  # 30 minutes
 SessionLocal = sessionmaker(bind=engine)
 
 def download_channel_transcripts(channel_url, status_dict):

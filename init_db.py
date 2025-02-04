@@ -30,7 +30,12 @@ def main():
     logger.info(f"Using DB_URL={DB_URL}")
 
     # Create engine & session
-    engine = create_engine(DB_URL, echo=True)
+    #engine = create_engine(DB_URL, echo=True)
+    engine = create_engine(
+    DB_URL, 
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=1800)  # 30 minutes
     SessionLocal = sessionmaker(bind=engine)
 
     # Create all tables that do not exist

@@ -21,7 +21,11 @@ CLOUDFLARE_ISSUER = os.getenv("CLOUDFLARE_ISSUER")
 CLOUDFLARE_AUD_TAG = os.getenv("CLOUDFLARE_AUD_TAG")
 
 DB_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/mydb")
-engine = create_engine(DB_URL, echo=False)
+engine = create_engine(
+    DB_URL, 
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=1800)
 SessionLocal = sessionmaker(bind=engine)
 
 

@@ -27,7 +27,12 @@ from db.models import Base, Video, VideoFolder, SummariesV2, User
 
 
 DB_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/mydb")
-engine = create_engine(DB_URL, echo=False)
+#engine = create_engine(DB_URL, echo=False)
+engine = create_engine(
+    DB_URL, 
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=1800)  # 30 minutes
 SessionLocal = sessionmaker(bind=engine)
 
 app = Flask(__name__)
@@ -47,6 +52,7 @@ OLLAMA_URL = f"http://{ollama_host}:11434"
 # For production, use a database or a caching layer (Redis).
 download_statuses = {}
 summarize_v2_statuses = {}
+
 
 # Define a decorator to require a specific role
 def require_role(allowed_roles):
@@ -156,11 +162,14 @@ def api_channel_start():
     }
 
     def run_download():
+        session = SessionLocal()
         try:
             # This function now ensures that for every video,
             # a row in video_folders(folder_name=<channel_id>, video_id=...) is inserted
             download_channel_transcripts(channel_url, download_statuses[task_id])
             download_statuses[task_id]["status"] = "completed"
+        finally:
+            session.close()
         except Exception as e:
             logger.error(f"Error in channel download: {e}")
             download_statuses[task_id]["status"] = "failed"
