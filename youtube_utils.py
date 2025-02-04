@@ -27,7 +27,10 @@ SessionLocal = sessionmaker(bind=engine)
 def download_channel_transcripts(channel_url, status_dict):
     """
     Download transcripts for all videos in a channel/playlist.
-    This updated version preserves the human-friendly folder_name if one already exists.
+
+    Improved:
+    - Skip downloading transcripts if they are already in the DB
+    - Report skipped videos as processed in the status_dict
     """
     # Create tables if they don't exist (or use migrations in production)
     Base.metadata.create_all(engine)
@@ -38,11 +41,15 @@ def download_channel_transcripts(channel_url, status_dict):
     status_dict["total"] = total_videos
     status_dict.setdefault("processed", 0)
     status_dict.setdefault("errors", [])
+    # Optionally track how many videos were skipped or newly downloaded
+    status_dict.setdefault("already_downloaded", 0)
+    status_dict.setdefault("newly_downloaded", 0)
 
     session = SessionLocal()
     try:
         # Check if there is already a folder association for this playlist id.
         existing_folder = session.query(VideoFolder).filter_by(original_playlist_id=channel_id).first()
+
         if existing_folder:
             # Use the existing (human-friendly) folder name.
             human_playlist_name = existing_folder.folder_name
@@ -56,6 +63,31 @@ def download_channel_transcripts(channel_url, status_dict):
             title = video_meta["title"]
             upload_date = video_meta["upload_date"]
 
+            # 1) Check if this video is already in DB with a transcript
+            existing_video = (
+                session.query(Video)
+                .filter_by(video_id=video_id)
+                .first()
+            )
+            if (existing_video
+                and existing_video.transcript_no_ts
+                and existing_video.transcript_no_ts.strip() != ""):
+                # Already have a transcript => skip re-downloading
+                logger.info(f"Skipping transcript download for {video_id} (already in DB).")
+                status_dict["already_downloaded"] += 1
+
+                # Ensure folder association
+                ensure_folder_association(
+                    session,
+                    video_id,
+                    channel_id,
+                    human_playlist_name
+                )
+                
+                processed_count += 1
+                status_dict["processed"] = processed_count
+                continue
+
             # Fix unknown upload date if possible
             if upload_date == "UnknownDate":
                 real_date = get_upload_date_for_video(video_id)
@@ -63,7 +95,7 @@ def download_channel_transcripts(channel_url, status_dict):
                     upload_date = real_date
                     video_meta["upload_date"] = real_date
 
-            # Fetch transcripts for the video
+            # 2) Download transcript only if missing
             try:
                 transcripts = get_transcript_for_video(video_id)
             except Exception as e:
@@ -74,12 +106,11 @@ def download_channel_transcripts(channel_url, status_dict):
                 status_dict["processed"] = processed_count
                 continue
 
-            # Build both transcript variants
+            # 3) Build transcript variants
             transcript_with_ts, transcript_no_ts = build_transcript_variants(transcripts)
 
-            # Upsert the video into the 'videos' table
-            video_obj = session.query(Video).filter_by(video_id=video_id).first()
-            if not video_obj:
+            # 4) Upsert the Video row
+            if not existing_video:
                 video_obj = Video(
                     video_id=video_id,
                     title=title,
@@ -88,27 +119,24 @@ def download_channel_transcripts(channel_url, status_dict):
                     transcript_no_ts=transcript_no_ts
                 )
                 session.add(video_obj)
-            else:
-                video_obj.title = title
-                video_obj.upload_date = upload_date
-                video_obj.transcript_with_ts = transcript_with_ts
-                video_obj.transcript_no_ts = transcript_no_ts
-            session.commit()
-
-            # Ensure a folder association row exists using the preserved human-friendly name.
-            folder_association = session.query(VideoFolder).filter_by(
-                original_playlist_id=channel_id,
-                video_id=video_id
-            ).first()
-            if not folder_association:
-                folder_association = VideoFolder(
-                    folder_name=human_playlist_name,
-                    original_playlist_id=channel_id,
-                    video_id=video_id,
-                    last_modified=datetime.utcnow()
-                )
-                session.add(folder_association)
                 session.commit()
+            else:
+                existing_video.title = title
+                existing_video.upload_date = upload_date
+                existing_video.transcript_with_ts = transcript_with_ts
+                existing_video.transcript_no_ts = transcript_no_ts
+                session.commit()
+
+            # 5) Ensure folder association
+            ensure_folder_association(
+                session,
+                video_id,
+                channel_id,
+                human_playlist_name
+            )
+
+            # Mark one newly downloaded
+            status_dict["newly_downloaded"] += 1
 
             processed_count += 1
             status_dict["processed"] = processed_count
@@ -118,6 +146,27 @@ def download_channel_transcripts(channel_url, status_dict):
         status_dict["errors"].append(str(e))
     finally:
         session.close()
+
+
+def ensure_folder_association(session, video_id, channel_id, folder_name):
+    """
+    Helper to ensure there's a row in video_folders linking this 
+    video_id to the channel/playlist (folder_name + original_playlist_id).
+    """
+    folder_assoc = session.query(VideoFolder).filter_by(
+        original_playlist_id=channel_id,
+        video_id=video_id
+    ).first()
+    if not folder_assoc:
+        folder_assoc = VideoFolder(
+            folder_name=folder_name,
+            original_playlist_id=channel_id,
+            video_id=video_id,
+            last_modified=datetime.utcnow()
+        )
+        session.add(folder_assoc)
+        session.commit()
+
 
 def get_channel_and_videos(channel_url):
     """
