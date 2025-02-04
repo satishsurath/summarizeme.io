@@ -29,5 +29,5 @@ jobs:
 
       - name: Deploy container using script
         run: |
-          chmod +x ../update-summarizeme.io.sh
-          ../update-summarizeme.io.sh
+          chmod +x /home/satsur/update-summarizeme.io.sh
+          /home/satsur/update-summarizeme.io.sh
