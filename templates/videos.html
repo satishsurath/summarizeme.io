@@ -4,54 +4,69 @@
   <h1 class="mb-3">Channel Videos</h1>
   <p>Channel ID: {{ channel_name }}</p>
 
-  <!-- Filter & Sort Controls -->
+  <!-- Filter & Sort Controls (you can keep or remove the dropdown if you like) -->
   <div id="videoFilterBar">
-  <div class="row g-3 align-items-end mb-3">
-    <div class="col-12 col-sm-6 col-md-auto">
-      <label for="filterInput" class="form-label">Filter Title:</label>
-      <input type="text" id="filterInput" class="form-control" />
-    </div>
-    <div class="col-12 col-sm-6 col-md-auto">
-      
-      <label for="sortSelect" class="form-label">Sort By:</label>
-      <select id="sortSelect" class="form-select">
-        <option value="title">Title</option>
-        <option value="date">Upload Date</option>
-      </select>
-    
-  </div>
-    <div class="col-12 col-md-auto">
-      <button id="applyFilterBtn" class="btn btn-primary w-100 w-md-auto">Apply</button>
+    <div class="row g-3 align-items-end mb-3">
+      <div class="col-12 col-sm-6 col-md-auto">
+        <label for="filterInput" class="form-label">Filter Title:</label>
+        <input type="text" id="filterInput" class="form-control" />
+      </div>
+      <!-- If you want, remove the old "sortSelect" or hide it.
+           We'll rely on clickable column headers now. -->
+      <div class="col-12 col-md-auto">
+        <button id="applyFilterBtn" class="btn btn-primary w-100 w-md-auto">Apply</button>
+      </div>
     </div>
   </div>
-</div>
 
-  <!-- Videos List (table is rendered via JS) -->
-  <div id="videosList" class="table-responsive"></div>
+  <!-- Videos List (we'll dynamically render the table in JS, 
+       but the header part is easy to do as static markup with "clickable" <a> tags) -->
+  <div class="table-responsive">
+    <table class="" id="videosTable">
+      <thead>
+        <tr>
+          <!-- "Select All" checkbox for multi-selection -->
+          <th>
+            <input type="checkbox" id="selectAll" class="form-check-input" />
+            &nbsp;All
+          </th>
+          <th>
+            <a href="#" data-column="title" id="sortTitleLink">Title</a>
+          </th>
+          <th>
+            <a href="#" data-column="date" id="sortDateLink">Date</a>
+          </th>
+          <th>Existing Summaries</th>
+          <th>Transcript</th>
+        </tr>
+      </thead>
+      <tbody id="videosList">
+        <!-- Dynamically filled by JS -->
+      </tbody>
+    </table>
+  </div>
 
   <!-- Pagination Controls -->
-  <div id="paginationControls"> 
-  <div class="row g-3 align-items-center mt-4">
-    <div class="col-auto">
-      <button id="prevPageBtn" class="btn btn-secondary">Previous</button>
-    </div>
-    <div class="col-auto">
-      <span id="pageInfo"></span>
-    </div>
-    <div class="col-auto">
-      <button id="nextPageBtn" class="btn btn-secondary">Next</button>
+  <div id="paginationControls">
+    <div class="row g-3 align-items-center mt-4">
+      <div class="col-auto">
+        <button id="prevPageBtn" class="btn btn-secondary">Previous</button>
+      </div>
+      <div class="col-auto">
+        <span id="pageInfo"></span>
+      </div>
+      <div class="col-auto">
+        <button id="nextPageBtn" class="btn btn-secondary">Next</button>
+      </div>
     </div>
   </div>
-</div>
 
   <!-- Summarization Section -->
-  <div class="mt-4">
-    <div id="summarizeSection">
+  <div class="mt-4" id="summarizeSection">
     <h3>Summarize Selected Videos</h3>
     <div class="row g-2 mb-3">
       <div class="col-auto">
         <label for="methodSelect" class="visually-hidden">Summarization Method</label>
-        <!-- This select will be dynamically populated with Ollama models -->
         <select id="methodSelect" class="form-select">
           <!-- fallback in case dynamic load fails could be added here -->
         </select>
@@ -60,18 +75,16 @@
         <button id="summarizeBtn" class="btn btn-success">Summarize</button>
       </div>
     </div>
-  </div>
     <div id="summaryStatus"></div>
   </div>
 </div>
 
 <script>
-  // The channel_id is passed by the server:
+  // The channel_name is passed by the server:
   const channel_name = "{{ channel_name }}";
 </script>
 
-<!-- Optional: if you want to render any markdown from the SummariesV2 data in the future -->
-<script src="{{ url_for('static', filename='marked.min.js') }}"></script>
-<!-- Main logic for loading/summarizing videos -->
+
+<!-- Your main logic for loading/summarizing videos -->
 <script src="{{ url_for('static', filename='js/videos.js') }}"></script>
-{% endblock %}  
+{% endblock %}

@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
   const filterInput = document.getElementById("filterInput");
-  const sortSelect = document.getElementById("sortSelect");
   const applyFilterBtn = document.getElementById("applyFilterBtn");
   const videosList = document.getElementById("videosList");
   const prevPageBtn = document.getElementById("prevPageBtn");
@@ -9,30 +8,55 @@ document.addEventListener("DOMContentLoaded", () => {
   const summarizeBtn = document.getElementById("summarizeBtn");
   const methodSelect = document.getElementById("methodSelect");
   const summaryStatus = document.getElementById("summaryStatus");
+  
+  // For column header links:
+  const sortTitleLink = document.getElementById("sortTitleLink");
+  const sortDateLink = document.getElementById("sortDateLink");
 
   let currentPage = 1;
   let pageSize = 50;
   let totalVideos = 0;
   let currentVideos = [];
 
-  // Dynamically load available Ollama models
-  loadOllamaModels();
+  // Track sort column & order. 
+  // Default to sorting by 'title' ascending, for example.
+  let currentSort = {
+    by: 'title',
+    order: 'asc'
+  };
 
-  // Initial load
-  loadVideos();
+  // ==========================
+  //  Define updateSortIndicators
+  // ==========================
+  function updateSortIndicators() {
+    // Clear out any existing indicators
+    sortTitleLink.innerText = "Title";
+    sortDateLink.innerText = "Date";
+  
+    // Show an arrow on whichever is selected
+    if (currentSort.by === "title") {
+      sortTitleLink.innerText += (currentSort.order === "asc") ? " ↑" : " ↓";
+    } else if (currentSort.by === "date") {
+      sortDateLink.innerText += (currentSort.order === "asc") ? " ↑" : " ↓";
+    }
+  }
 
+  // =====================
+  //    EVENT LISTENERS
+  // =====================
+  // 1) Filter
   applyFilterBtn.addEventListener("click", () => {
     currentPage = 1;
     loadVideos();
   });
 
+  // 2) Pagination
   prevPageBtn.addEventListener("click", () => {
     if (currentPage > 1) {
       currentPage--;
       loadVideos();
     }
   });
-
   nextPageBtn.addEventListener("click", () => {
     if (currentPage * pageSize < totalVideos) {
       currentPage++;
@@ -40,6 +64,41 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // 3) Sorting by clicking column headers
+  sortTitleLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    
+    // If already sorting by 'title', flip the order. Otherwise, set to asc.
+    if (currentSort.by === 'title') {
+      currentSort.order = (currentSort.order === 'asc') ? 'desc' : 'asc';
+    } else {
+      currentSort.by = 'title';
+      currentSort.order = 'asc';
+    }
+    updateSortIndicators();
+    currentPage = 1;
+    loadVideos();
+    
+  });
+
+  sortDateLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    
+    // If already sorting by 'date', flip the order. Otherwise, set to desc or asc (your preference).
+    if (currentSort.by === 'date') {
+      currentSort.order = (currentSort.order === 'asc') ? 'desc' : 'asc';
+    } else {
+      currentSort.by = 'date';
+      // maybe default to descending for date so newest first:
+      currentSort.order = 'desc';
+    }
+    updateSortIndicators();
+    currentPage = 1;
+    loadVideos();
+    
+  });
+
+  // 4) Summarize button
   summarizeBtn.addEventListener("click", async () => {
     const selected = currentVideos
       .filter(v => document.getElementById(`check_${v.video_id}`).checked)
@@ -58,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          channel_name: channel_name, // the variable from <script> above
+          channel_name: channel_name, 
           video_ids: selected,
           model: chosenModel
         })
@@ -75,49 +134,45 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Load the Ollama models for the Summarize <select>
+  loadOllamaModels();
+
+  // Initially load the first page of videos
+  loadVideos();
+
+  // =====================
+  //    MAIN FUNCTIONS
+  // =====================
   async function loadVideos() {
     const filterVal = filterInput.value;
-    const sortVal = sortSelect.value;
-    const url = `/api/videos/${channel_name}?page=${currentPage}&page_size=${pageSize}&sort_by=${sortVal}&filter=${encodeURIComponent(filterVal)}`;
+    const url = `/api/videos/${channel_name}?page=${currentPage}&page_size=${pageSize}`
+              + `&sort_by=${currentSort.by}&sort_order=${currentSort.order}`
+              + `&filter=${encodeURIComponent(filterVal)}`;
 
-    videosList.innerHTML = "Loading...";
+    videosList.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
     try {
       const res = await fetch(url);
       const data = await res.json();
       totalVideos = data.total;
       currentVideos = data.videos;
       renderVideos(data.videos);
-      pageInfo.innerText = `Page ${data.page} / ${Math.ceil(data.total / data.page_size)}`;
+      pageInfo.innerText = `Page ${data.page} of ${Math.ceil(data.total / data.page_size)}`;
     } catch (err) {
-      videosList.innerHTML = `Error loading videos: ${err}`;
+      videosList.innerHTML = `<tr><td colspan='5'>Error loading videos: ${err}</td></tr>`;
     }
   }
 
   function renderVideos(videos) {
     if (!videos || videos.length === 0) {
-      videosList.innerHTML = "<p>No videos found.</p>";
+      videosList.innerHTML = "<tr><td colspan='5'>No videos found.</td></tr>";
       return;
     }
 
-    let html = `
-      <table>
-        <thead>
-          <tr>
-            <th><input type="checkbox" id="selectAll" class="form-check-input videoCheckbox" />&nbsp;&nbsp;All </th>
-            <th>Title</th>
-            <th>Date</th>
-            <th>Existing Summaries</th>
-            <th>Transcript</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
+    let html = "";
     videos.forEach(v => {
       let summariesList = "";
       if (v.summaries_v2 && v.summaries_v2.length > 0) {
         summariesList = v.summaries_v2.map(s => {
-          // Provide a link to the new route /summaries_v2/<s.id>
           return `
             <div>
               <a href="/summaries_v2/${s.id}" target="_blank">
@@ -149,7 +204,6 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
     });
 
-    html += "</tbody></table>";
     videosList.innerHTML = html;
 
     // "Select All" logic
@@ -163,14 +217,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Dynamically load available Ollama models
+  // Load Ollama models
   async function loadOllamaModels() {
     try {
       const resp = await fetch("/api/ollama/models");
       const data = await resp.json();
       methodSelect.innerHTML = ""; // clear existing
 
-      data.data.forEach(m => {
+      (data.data || []).forEach(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
         opt.textContent = m.id;
@@ -183,3 +237,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 });
+

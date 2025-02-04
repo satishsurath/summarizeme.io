@@ -191,66 +191,57 @@ def api_channel_status(task_id):
 
 @app.route('/api/videos/<channel_name>', methods=['GET'])
 def api_get_videos(channel_name):
-    """
-    List the videos for a given channel from the database,
-    plus any SummariesV2 entries that exist for each video.
-    Applies pagination, sorting, and a title filter.
-
-    Query params:
-      - page (int)
-      - page_size (int)
-      - sort_by (str) => "title" or "date"
-      - filter (str) => partial match on title
-    """
     page = int(request.args.get('page', 1))
     page_size = int(request.args.get('page_size', 5))  # default 5 if not provided
-    sort_by = request.args.get('sort_by', 'title')  # or 'date'
+    sort_by = request.args.get('sort_by', 'title')     # "title" or "date"
+    sort_order = request.args.get('sort_order', 'asc').lower()  # "asc" or "desc"
     filter_str = request.args.get('filter', '').strip().lower()
 
     session = SessionLocal()
     try:
-        # 1) Query the videos for this channel
         query = (
             session.query(Video)
             .join(VideoFolder, Video.video_id == VideoFolder.video_id)
             .filter(VideoFolder.folder_name == channel_name)
         )
-        
-        # 2) Apply optional title filter
+
+        # 1) Apply optional title filter
         if filter_str:
-            # We do a simple case-insensitive "like" matching on Video.title
             query = query.filter(Video.title.ilike(f"%{filter_str}%"))
 
-        # 3) Sorting
+        # 2) Sorting
+        #    We use sort_by + sort_order
         if sort_by == 'title':
-            query = query.order_by(Video.title.asc())
+            if sort_order == 'asc':
+                query = query.order_by(Video.title.asc())
+            else:
+                query = query.order_by(Video.title.desc())
         elif sort_by == 'date':
-            # If you want newest first, do desc. Or if you want oldest first, asc.
-            query = query.order_by(Video.upload_date.desc())
+            if sort_order == 'asc':
+                query = query.order_by(Video.upload_date.asc())
+            else:
+                query = query.order_by(Video.upload_date.desc())
 
-        # 4) Pagination
+        # 3) Pagination
         total = query.count()
         offset = (page - 1) * page_size
         video_rows = query.offset(offset).limit(page_size).all()
 
-        # 5) Build the JSON response
+        # 4) Build the JSON response
         videos_list = []
         for vid in video_rows:
-            # Retrieve all SummariesV2 for this video
             summaries_v2_data = []
             for s in vid.summaries_v2:
                 summaries_v2_data.append({
                     "id": s.id,
                     "model_name": s.model_name,
                     "date_generated": s.date_generated.isoformat() if s.date_generated else None,
-                    # If you want, you could include excerpts from s.concise_summary, etc.
                 })
 
             videos_list.append({
                 "video_id": vid.video_id,
                 "title": vid.title or "Untitled",
                 "upload_date": vid.upload_date or "UnknownDate",
-                # Now we store the entire set of v2 summaries for the front-end to handle
                 "summaries_v2": summaries_v2_data
             })
 
@@ -260,7 +251,6 @@ def api_get_videos(channel_name):
             "page_size": page_size,
             "videos": videos_list
         })
-
     finally:
         session.close()
 
