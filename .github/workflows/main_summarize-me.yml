@@ -7,7 +7,6 @@ on:
 jobs:
   build-and-deploy:
     runs-on: self-hosted
-    # If you named your runner group something else, or labeled it, adjust accordingly
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -20,14 +19,22 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.CR_PAT }}
 
       - name: Build and push Docker image
         run: |
           docker build -t ghcr.io/${{ github.repository }}:latest .
           docker push ghcr.io/${{ github.repository }}:latest
 
-      - name: Deploy container using script
+      - name: Deploy container
         run: |
-          chmod +x ../update-summarizeme.io.sh
-          ../update-summarizeme.io.sh
+          # Pull the newest image
+          docker pull ghcr.io/${{ github.repository }}:latest
+          # Stop old container (if running)
+          docker stop summarizeme.io || true
+          docker rm summarizeme.io || true
+          # Run new container
+          docker run -d --name summarizeme.io \
+            --env-file=.env \
+            -p 8000:8000 \
+            ghcr.io/${{ github.repository }}:latest
