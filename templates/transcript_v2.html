@@ -1,63 +1,104 @@
 {% extends "layout.html" %}
 {% block content %}
-  <h1>Transcript: (Video: {{ video.title }})</h1>
-  <p><strong>Video ID:</strong> {{ video.video_id }}</p>
-  
-  <hr/>
-  
-  <h2>Transcript (from the videos table)</h2>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            Transcript: {{ video.title }}
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400">
+            <span class="font-medium">Video ID:</span> {{ video.video_id }}
+        </p>
+    </div>
 
-<!-- Collapsible for "no timestamps" -->
-<div class="collapsible" onclick="toggleContent('noTsContent')">
-    Show/Hide Transcript (no timestamps) <svg onclick="copyToClipboard('noTsContent')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg>
-  </div>
-  <div id="noTsContent" class="content">
-    <pre>{{ video.transcript_no_ts }}</pre>
-  </div>
+    <div class="space-y-6">
+        <!-- No Timestamps Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <button onclick="toggleContent('noTsContent')" class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                <span class="text-lg font-medium text-gray-900 dark:text-white">
+                    Transcript (no timestamps)
+                </span>
+                <div class="flex items-center space-x-2">
+                    <button onclick="copyToClipboard('noTsContent'); event.stopPropagation();" 
+                            class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                    </button>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+            </button>
+            <div id="noTsContent" class="hidden">
+                <pre class="p-6 text-sm text-gray-700 dark:text-gray-300 overflow-x-auto">{{ video.transcript_no_ts }}</pre>
+            </div>
+        </div>
 
-  <!-- Collapsible for "with timestamps" -->
-  <div class="collapsible" onclick="toggleContent('withTsContent')">
-    Show/Hide Transcript (with timestamps) <svg onclick="copyToClipboard('withTsContent')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg>
-  </div>
-  <div id="withTsContent" class="content">
-    <pre>{{ video.transcript_with_ts }}</pre>
-  </div>
+        <!-- With Timestamps Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <button onclick="toggleContent('withTsContent')" class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                <span class="text-lg font-medium text-gray-900 dark:text-white">
+                    Transcript (with timestamps)
+                </span>
+                <div class="flex items-center space-x-2">
+                    <button onclick="copyToClipboard('withTsContent'); event.stopPropagation();" 
+                            class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                    </button>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+            </button>
+            <div id="withTsContent" class="hidden">
+                <pre class="p-6 text-sm text-gray-700 dark:text-gray-300 overflow-x-auto">{{ video.transcript_with_ts }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
 
-  
-
-  <script>
-  function toggleContent(id) {
+<script>
+function toggleContent(id) {
     const elem = document.getElementById(id);
-    if (elem.style.display === "none" || !elem.style.display) {
-      elem.style.display = "block";
+    const button = elem.previousElementSibling;
+    const arrow = button.querySelector('svg:last-child');
+    
+    if (elem.classList.contains('hidden')) {
+        elem.classList.remove('hidden');
+        arrow.classList.add('rotate-180');
     } else {
-      elem.style.display = "none";
+        elem.classList.add('hidden');
+        arrow.classList.remove('rotate-180');
     }
-  }
+}
 
-    /**
-     * Copies the content of an element with the given ID to the clipboard.
-     * @param {string} elementId - The ID of the element whose content is to be copied.
-     */
-    function copyToClipboard(elementId) {
-      const element = document.getElementById(elementId);
-      if (!element) {
-        alert('Element not found.');
-        return;
-      }
-  
-      const content = element.innerText || element.textContent;
-  
-      navigator.clipboard.writeText(content).then(
-        function () {
-          //alert('Content copied to clipboard!');
-          console.log('Content copied to clipboard:', content);
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    const content = element.innerText || element.textContent;
+    
+    navigator.clipboard.writeText(content).then(
+        function() {
+            // Show a brief success message
+            const notification = document.createElement('div');
+            notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg transform transition-transform duration-300 ease-in-out';
+            notification.textContent = 'Copied to clipboard!';
+            document.body.appendChild(notification);
+            
+            // Remove the notification after 2 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateY(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
         },
-        function (err) {
-          alert('Failed to copy content: ', err);
-          console.error('Failed to copy content:', err);
+        function(err) {
+            console.error('Failed to copy content:', err);
+            alert('Failed to copy content');
         }
-      );
-    }
-  </script>
+    );
+}
+</script>
 {% endblock %}

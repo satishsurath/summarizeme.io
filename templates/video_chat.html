@@ -1,68 +1,135 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1>Chat with Video: {{ video_name }}</h1>
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header Section -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            Chat with Video: {{ video_name }}
+        </h1>
 
-{% if folder_list %}
-  <ul>
-    {% for folder in folder_list %}
-      <li><strong>Back to the Channel:</strong>&nbsp;
-        <a href="/chat-channel/{{ folder }}">{{ folder }}</a>
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No channels found for this video.</p>
-{% endif %}
+        {% if folder_list %}
+            <div class="space-y-2">
+                {% for folder in folder_list %}
+                    <div class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                        <span class="font-medium">Back to the Channel:</span>
+                        <a href="/chat-channel/{{ folder }}" 
+                           class="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+                            {{ folder }}
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-600 dark:text-gray-400">No channels found for this video.</p>
+        {% endif %}
+    </div>
 
-<details style="margin-bottom: 1em;">
-  <summary><strong>Transcript</strong></summary>
-  <div style="white-space: pre-wrap; margin-top: 0.5em; padding-left: 1em;">
-    {{ video_transcript }}
-  </div>
-</details>
+    <!-- Transcript Section -->
+    <div class="mb-8">
+        <button onclick="toggleTranscript()" 
+                class="w-full flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <span class="text-lg font-medium text-gray-900 dark:text-white">Transcript</span>
+            <svg id="transcriptArrow" class="h-5 w-5 text-gray-500 transform transition-transform duration-200" 
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        </button>
+        <div id="transcriptContent" class="hidden mt-2">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="whitespace-pre-wrap text-gray-700 dark:text-gray-300 text-sm">
+                    {{ video_transcript }}
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div>
-  <label for="dataTypeSelect"><strong>Data Source:</strong></label>
-  <select id="dataTypeSelect">
-    <!-- By default, select “Comprehensive Notes” -->
-    <option value="comprehensive_notes" selected>Comprehensive Notes</option>
-    <option value="concise_summary">Concise Summary</option>
-    <option value="key_topics">Key Topics</option>
-    <option value="important_takeaways">Important Takeaways</option>
-    <option value="transcript">Transcript</option>
-  </select>
-</div>
+    <!-- Chat Interface -->
+    <div class="space-y-6">
+        <!-- Data Source Selection -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <label for="dataTypeSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Data Source:
+            </label>
+            <select id="dataTypeSelect" 
+                    class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="comprehensive_notes">Comprehensive Notes</option>
+                <option value="concise_summary">Concise Summary</option>
+                <option value="key_topics">Key Topics</option>
+                <option value="important_takeaways">Important Takeaways</option>
+                <option value="transcript">Transcript</option>
+            </select>
+        </div>
 
-<div style="margin-top:1em;">
-  <textarea id="userQuery" rows="3" cols="60" placeholder="Enter your question..."></textarea><br/>
-  <button id="sendBtn">Send</button>
-</div>
+        <!-- Chat Input -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <textarea id="userQuery" 
+                      rows="3" 
+                      placeholder="Enter your question..." 
+                      class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
+            <button id="sendBtn" 
+                    class="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                Send
+            </button>
+        </div>
 
-<div id="chatResult" style="margin-top:20px; border:1px solid #ccc; padding:10px;">
-  <!-- Response from the server -->
+        <!-- Chat Result -->
+        <div id="chatResult" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div class="prose dark:prose-invert max-w-none">
+                <!-- Response will be inserted here -->
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
+function toggleTranscript() {
+    const content = document.getElementById('transcriptContent');
+    const arrow = document.getElementById('transcriptArrow');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        arrow.classList.add('rotate-180');
+    } else {
+        content.classList.add('hidden');
+        arrow.classList.remove('rotate-180');
+    }
+}
+
 document.getElementById('sendBtn').addEventListener('click', async () => {
-  const query = document.getElementById('userQuery').value.trim();
-  const dataType = document.getElementById('dataTypeSelect').value;
-  if (!query) return;
+    const query = document.getElementById('userQuery').value.trim();
+    const dataType = document.getElementById('dataTypeSelect').value;
+    if (!query) return;
 
-  const chatDiv = document.getElementById('chatResult');
-  chatDiv.innerHTML = "Processing...";
+    const chatDiv = document.getElementById('chatResult');
+    chatDiv.innerHTML = `
+        <div class="flex items-center justify-center space-x-2 text-gray-500 dark:text-gray-400">
+            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Processing your question...</span>
+        </div>
+    `;
 
-  try {
-    const resp = await fetch(`/api/chat-video/{{ video_id }}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, data_type: dataType })
-    });
-    const data = await resp.json();
-    chatDiv.innerHTML = data.answer;
-  } catch (err) {
-    chatDiv.innerHTML = "Error: " + err;
-  }
+    try {
+        const resp = await fetch(`/api/chat-video/{{ video_id }}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query, data_type: dataType })
+        });
+        const data = await resp.json();
+        chatDiv.innerHTML = `
+            <div class="prose dark:prose-invert max-w-none">
+                ${data.answer}
+            </div>
+        `;
+    } catch (err) {
+        chatDiv.innerHTML = `
+            <div class="text-red-500 dark:text-red-400">
+                Error: ${err}
+            </div>
+        `;
+    }
 });
 </script>
-
 {% endblock %}

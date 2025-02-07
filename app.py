@@ -1030,26 +1030,6 @@ def api_chat_video(video_id):
 
 
 
-@app.route("/view-summary/<int:summary_id>", methods=["GET"])
-def view_summary_from_db(summary_id):
-    """
-    Fetches a summary by ID and displays it in a template.
-    """
-    session = SessionLocal()
-    try:
-        summary_obj = session.query(Summary).get(summary_id)
-        if not summary_obj:
-            return f"Summary with ID {summary_id} not found.", 404
-        else:
-            summary_obj.summary_text = markdown.markdown(summary_obj.summary_text)
-
-        # We'll pass the entire object to the template
-    finally:
-        session.close()
-
-    return render_template("summary_view.html", summary=summary_obj)
-
-
 #############################################################################
 # Admin Routes
 #############################################################################

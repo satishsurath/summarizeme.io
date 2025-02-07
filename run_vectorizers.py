@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#run_vectorizers.py
 
 import os
 import psycopg2

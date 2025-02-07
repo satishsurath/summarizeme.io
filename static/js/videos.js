@@ -8,8 +8,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const summarizeBtn = document.getElementById("summarizeBtn");
   const methodSelect = document.getElementById("methodSelect");
   const summaryStatus = document.getElementById("summaryStatus");
-  
-  // For column header links:
   const sortTitleLink = document.getElementById("sortTitleLink");
   const sortDateLink = document.getElementById("sortDateLink");
 
@@ -17,46 +15,44 @@ document.addEventListener("DOMContentLoaded", () => {
   let pageSize = 50;
   let totalVideos = 0;
   let currentVideos = [];
-
-  // Track sort column & order. 
-  // Default to sorting by 'title' ascending, for example.
   let currentSort = {
     by: 'title',
     order: 'asc'
   };
 
-  // ==========================
-  //  Define updateSortIndicators
-  // ==========================
   function updateSortIndicators() {
-    // Clear out any existing indicators
+    // Reset both links to default state
     sortTitleLink.innerText = "Title";
     sortDateLink.innerText = "Date";
+    
+    const defaultClass = "text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200";
+    const activeClass = "text-xs font-medium text-blue-500 dark:text-blue-400 uppercase tracking-wider";
+    
+    sortTitleLink.className = defaultClass;
+    sortDateLink.className = defaultClass;
   
-    // Show an arrow on whichever is selected
     if (currentSort.by === "title") {
-      sortTitleLink.innerText += (currentSort.order === "asc") ? " ↑" : " ↓";
+      sortTitleLink.innerText += currentSort.order === "asc" ? " ↑" : " ↓";
+      sortTitleLink.className = activeClass;
     } else if (currentSort.by === "date") {
-      sortDateLink.innerText += (currentSort.order === "asc") ? " ↑" : " ↓";
+      sortDateLink.innerText += currentSort.order === "asc" ? " ↑" : " ↓";
+      sortDateLink.className = activeClass;
     }
   }
 
-  // =====================
-  //    EVENT LISTENERS
-  // =====================
-  // 1) Filter
+  // Event Listeners
   applyFilterBtn.addEventListener("click", () => {
     currentPage = 1;
     loadVideos();
   });
 
-  // 2) Pagination
   prevPageBtn.addEventListener("click", () => {
     if (currentPage > 1) {
       currentPage--;
       loadVideos();
     }
   });
+
   nextPageBtn.addEventListener("click", () => {
     if (currentPage * pageSize < totalVideos) {
       currentPage++;
@@ -64,11 +60,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 3) Sorting by clicking column headers
   sortTitleLink.addEventListener("click", (e) => {
     e.preventDefault();
-    
-    // If already sorting by 'title', flip the order. Otherwise, set to asc.
     if (currentSort.by === 'title') {
       currentSort.order = (currentSort.order === 'asc') ? 'desc' : 'asc';
     } else {
@@ -78,27 +71,21 @@ document.addEventListener("DOMContentLoaded", () => {
     updateSortIndicators();
     currentPage = 1;
     loadVideos();
-    
   });
 
   sortDateLink.addEventListener("click", (e) => {
     e.preventDefault();
-    
-    // If already sorting by 'date', flip the order. Otherwise, set to desc or asc (your preference).
     if (currentSort.by === 'date') {
       currentSort.order = (currentSort.order === 'asc') ? 'desc' : 'asc';
     } else {
       currentSort.by = 'date';
-      // maybe default to descending for date so newest first:
       currentSort.order = 'desc';
     }
     updateSortIndicators();
     currentPage = 1;
     loadVideos();
-    
   });
 
-  // 4) Summarize button
   summarizeBtn.addEventListener("click", async () => {
     const selected = currentVideos
       .filter(v => document.getElementById(`check_${v.video_id}`).checked)
@@ -106,10 +93,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (selected.length === 0) {
       summaryStatus.innerText = "No videos selected.";
+      summaryStatus.className = "mt-2 text-sm text-red-500 dark:text-red-400";
       return;
     }
 
     summaryStatus.innerText = "Starting summarization...";
+    summaryStatus.className = "mt-2 text-sm text-blue-500 dark:text-blue-400";
 
     try {
       const chosenModel = methodSelect.value;
@@ -117,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          channel_name: channel_name, 
+          channel_name: channel_name,
           video_ids: selected,
           model: chosenModel
         })
@@ -126,30 +115,31 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       if (data.status === "initiated") {
         summaryStatus.innerText = `Summarization started. Task ID: ${data.task_id}`;
+        summaryStatus.className = "mt-2 text-sm text-green-500 dark:text-green-400";
       } else {
         summaryStatus.innerText = `Error: ${data.message}`;
+        summaryStatus.className = "mt-2 text-sm text-red-500 dark:text-red-400";
       }
     } catch (err) {
       summaryStatus.innerText = `Error summarizing: ${err}`;
+      summaryStatus.className = "mt-2 text-sm text-red-500 dark:text-red-400";
     }
   });
 
-  // Load the Ollama models for the Summarize <select>
-  loadOllamaModels();
-
-  // Initially load the first page of videos
-  loadVideos();
-
-  // =====================
-  //    MAIN FUNCTIONS
-  // =====================
   async function loadVideos() {
     const filterVal = filterInput.value;
     const url = `/api/videos/${channel_name}?page=${currentPage}&page_size=${pageSize}`
               + `&sort_by=${currentSort.by}&sort_order=${currentSort.order}`
               + `&filter=${encodeURIComponent(filterVal)}`;
 
-    videosList.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
+    videosList.innerHTML = `
+      <tr>
+        <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+          <div class="animate-pulse">Loading...</div>
+        </td>
+      </tr>
+    `;
+
     try {
       const res = await fetch(url);
       const data = await res.json();
@@ -157,14 +147,39 @@ document.addEventListener("DOMContentLoaded", () => {
       currentVideos = data.videos;
       renderVideos(data.videos);
       pageInfo.innerText = `Page ${data.page} of ${Math.ceil(data.total / data.page_size)}`;
+      
+      // Update button states
+      prevPageBtn.disabled = currentPage <= 1;
+      nextPageBtn.disabled = currentPage * pageSize >= totalVideos;
+      
+      // Update button styles based on disabled state
+      [prevPageBtn, nextPageBtn].forEach(btn => {
+        if (btn.disabled) {
+          btn.className = "px-4 py-2 border border-gray-200 dark:border-gray-700 text-sm font-medium rounded-md text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 cursor-not-allowed";
+        } else {
+          btn.className = "px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500";
+        }
+      });
     } catch (err) {
-      videosList.innerHTML = `<tr><td colspan='5'>Error loading videos: ${err}</td></tr>`;
+      videosList.innerHTML = `
+        <tr>
+          <td colspan="5" class="px-6 py-4 text-center text-red-500 dark:text-red-400">
+            Error loading videos: ${err}
+          </td>
+        </tr>
+      `;
     }
   }
 
   function renderVideos(videos) {
     if (!videos || videos.length === 0) {
-      videosList.innerHTML = "<tr><td colspan='5'>No videos found.</td></tr>";
+      videosList.innerHTML = `
+        <tr>
+          <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+            No videos found.
+          </td>
+        </tr>
+      `;
       return;
     }
 
@@ -174,32 +189,38 @@ document.addEventListener("DOMContentLoaded", () => {
       if (v.summaries_v2 && v.summaries_v2.length > 0) {
         summariesList = v.summaries_v2.map(s => {
           return `
-            <div>
-              <a href="/summaries_v2/${s.id}" target="_blank">
+            <div class="mb-1">
+              <a href="/summaries_v2/${s.id}" 
+                 class="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                 target="_blank">
                 ${s.model_name}
               </a>
             </div>
           `;
         }).join("");
       } else {
-        summariesList = `<em>No Summaries</em>`;
+        summariesList = `<em class="text-gray-400 dark:text-gray-500">No Summaries</em>`;
       }
 
-      const transcriptLink = `<a href="/transcript/${v.video_id}">View</a>`;
+      const transcriptLink = `
+        <a href="/transcript/${v.video_id}" 
+           class="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
+          View
+        </a>
+      `;
 
       html += `
-        <tr>
-          <td>
-            <input 
-              type="checkbox" 
-              class="form-check-input videoCheckbox" 
-              id="check_${v.video_id}" 
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <td class="px-6 py-4">
+            <input type="checkbox" 
+                   class="videoCheckbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                   id="check_${v.video_id}" 
             />
           </td>
-          <td>${v.title}</td>
-          <td>${v.upload_date}</td>
-          <td>${summariesList}</td>
-          <td>${transcriptLink}</td>
+          <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${v.title}</td>
+          <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">${v.upload_date}</td>
+          <td class="px-6 py-4 text-sm">${summariesList}</td>
+          <td class="px-6 py-4 text-sm">${transcriptLink}</td>
         </tr>
       `;
     });
@@ -217,7 +238,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Load Ollama models
   async function loadOllamaModels() {
     try {
       const resp = await fetch("/api/ollama/models");
@@ -232,9 +252,16 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     } catch (err) {
       console.error("Failed to load Ollama models:", err);
-      // fallback
-      methodSelect.innerHTML = "<option value='phi4:latest'>phi4:latest</option>";
+      methodSelect.innerHTML = `
+        <option value="phi4:latest" class="text-gray-900 dark:text-gray-100">
+          phi4:latest
+        </option>
+      `;
     }
   }
-});
 
+  // Initialize
+  updateSortIndicators();
+  loadOllamaModels();
+  loadVideos();
+});

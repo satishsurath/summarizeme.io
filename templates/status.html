@@ -1,15 +1,31 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1>Download/Summarization Status</h1>
-<!-- <p>Enter your Task ID to see progress:</p>
-<input type="text" id="taskId" />
-<button id="checkStatusBtn">Check Status</button> -->
-<h2>All Tasks</h2>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Download/Summarization Status</h1>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Active Tasks</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Auto-refreshes every 5 seconds
+            </p>
+        </div>
+        
+        <div class="px-6 py-4" id="statusResult">
+            <div class="animate-pulse flex justify-center">
+                <div class="text-gray-500 dark:text-gray-400">Loading tasks...</div>
+            </div>
+        </div>
+    </div>
 
-<div id="statusResult">
-  <!-- We'll populate this <div> with a table from status.js -->
+    <!-- Future feature placeholder -->
+    <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 mt-8 border border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Coming Soon</h3>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Individual task lookup and detailed progress tracking
+        </p>
+    </div>
 </div>
-
 
 <script src="{{ url_for('static', filename='js/status.js') }}"></script>
 {% endblock %}

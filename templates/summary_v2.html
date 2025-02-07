@@ -1,105 +1,223 @@
 {% extends "layout.html" %}
 {% block content %}
-  <h1>Summaries v2 (Model: {{ summary.model_name }})</h1>
-  <p><strong>Video ID:</strong> {{ summary.video_id }}</p>
-  <p><strong>Date Generated:</strong> {{ summary.date_generated or "N/A" }}</p>
-
-  <hr/>
-
-  <details>
-  <summary>  Concise Summary <svg onclick="copyToClipboard('concise-summary')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg></summary>
-    
-  <!-- because we passed concise_html as a rendered HTML string, 
-       we display it with the |safe filter -->
-  <div style="border:1px solid #ccc; padding:10px;" id="concise-summary">
-    {{ concise_html|safe }}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header Section -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Summaries v2 (Model: {{ summary.model_name }})
+    </h1>
+    <div class="space-y-2">
+      <p class="text-gray-600 dark:text-gray-400">
+        <span class="font-medium">Video ID:</span> {{ summary.video_id }}
+      </p>
+      <p class="text-gray-600 dark:text-gray-400">
+        <span class="font-medium">Date Generated:</span> {{ summary.date_generated or "N/A" }}
+      </p>
+    </div>
   </div>
 
-</details>
+  <!-- Summary Sections -->
+  <div class="space-y-6">
+    <!-- Concise Summary -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+      <button onclick="toggleSection('concise-summary')"
+              class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+        <span class="text-lg font-medium text-gray-900 dark:text-white">
+          Concise Summary
+        </span>
+        <div class="flex items-center space-x-2">
+          <span onclick="copyToClipboard('concise-summary-content'); event.stopPropagation();"
+                class="cursor-pointer p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+          </span>
+          <svg class="h-5 w-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      <div id="concise-summary" class="hidden">
+        <div id="concise-summary-content" class="p-6 prose dark:prose-invert dark:text-gray-100 max-w-none">
+          {{ concise_html|safe }}
+        </div>
+      </div>
+    </div>
 
- <details> 
-    <summary>Key Topics  <svg onclick="copyToClipboard('key-topics')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg></summary>
-  <div style="border:1px solid #ccc; padding:10px;" id="key-topics">
-    {{ topics_html|safe }}
+    <!-- Key Topics -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+      <button onclick="toggleSection('key-topics')"
+              class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+        <span class="text-lg font-medium text-gray-900 dark:text-white">
+          Key Topics
+        </span>
+        <div class="flex items-center space-x-2">
+          <span onclick="copyToClipboard('key-topics-content'); event.stopPropagation();"
+                class="cursor-pointer p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+          </span>
+          <svg class="h-5 w-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      <div id="key-topics" class="hidden">
+        <div id="key-topics-content" class="p-6 prose dark:prose-invert dark:text-gray-100 max-w-none">
+          {{ topics_html|safe }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Important Takeaways -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+      <button onclick="toggleSection('important-takeaways')"
+              class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+        <span class="text-lg font-medium text-gray-900 dark:text-white">
+          Important Takeaways
+        </span>
+        <div class="flex items-center space-x-2">
+          <span onclick="copyToClipboard('important-takeaways-content'); event.stopPropagation();"
+                class="cursor-pointer p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+          </span>
+          <svg class="h-5 w-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      <div id="important-takeaways" class="hidden">
+        <div id="important-takeaways-content" class="p-6 prose dark:prose-invert dark:text-gray-100 max-w-none">
+          {{ takeaways_html|safe }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Comprehensive Notes -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+      <button onclick="toggleSection('comprehensive-notes')"
+              class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+        <span class="text-lg font-medium text-gray-900 dark:text-white">
+          Comprehensive Notes
+        </span>
+        <div class="flex items-center space-x-2">
+          <span onclick="copyToClipboard('comprehensive-notes-content'); event.stopPropagation();"
+                class="cursor-pointer p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+          </span>
+          <svg class="h-5 w-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      <div id="comprehensive-notes" class="hidden">
+        <div id="comprehensive-notes-content" class="p-6 prose dark:prose-invert dark:text-gray-100 max-w-none">
+          {{ notes_html|safe }}
+        </div>
+      </div>
+    </div>
   </div>
-    </details>
 
-    <details>
+  <!-- Transcript Section -->
+  <div class="mt-12">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Transcript</h2>
 
-  <summary>Important Takeaways <svg onclick="copyToClipboard('important-takeaways')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg></summary>
-  
-  <div style="border:1px solid #ccc; padding:10px;" id="important-takeaways">
-    {{ takeaways_html|safe }}
+    <!-- No Timestamps Transcript -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mb-6">
+      <button onclick="toggleSection('noTsContent')"
+              class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+        <span class="text-lg font-medium text-gray-900 dark:text-white">
+          Transcript (no timestamps)
+        </span>
+        <div class="flex items-center space-x-2">
+          <span onclick="copyToClipboard('noTsContent-text'); event.stopPropagation();"
+                class="cursor-pointer p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+          </span>
+          <svg class="h-5 w-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      <div id="noTsContent" class="hidden">
+        <pre id="noTsContent-text" class="p-6 text-sm text-gray-700 dark:text-gray-300 overflow-x-auto">
+{{ video.transcript_no_ts }}
+        </pre>
+      </div>
+    </div>
+
+    <!-- With Timestamps Transcript -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mb-6">
+      <button onclick="toggleSection('withTsContent')"
+              class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+        <span class="text-lg font-medium text-gray-900 dark:text-white">
+          Transcript (with timestamps)
+        </span>
+        <div class="flex items-center space-x-2">
+          <span onclick="copyToClipboard('withTsContent-text'); event.stopPropagation();"
+                class="cursor-pointer p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+          </span>
+          <svg class="h-5 w-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      <div id="withTsContent" class="hidden">
+        <pre id="withTsContent-text" class="p-6 text-sm text-gray-700 dark:text-gray-300 overflow-x-auto">
+{{ video.transcript_with_ts }}
+        </pre>
+      </div>
+    </div>
   </div>
+</div>
 
-    
-    </details>
-
-    <details>
-        <summary>
-  Comprehensive Notes <svg onclick="copyToClipboard('comprehensive-notes')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg></summary>
-  
-  <div style="border:1px solid #ccc; padding:10px;" id="comprehensive-notes">
-    {{ notes_html|safe }}
-  </div>
-</details>
-  <hr/>
-
-
-  
-  <h2>Transcript (from the videos table)</h2>
-
-<!-- Collapsible for "no timestamps" -->
-<div class="collapsible" onclick="toggleContent('noTsContent')">
-    Show/Hide Transcript (no timestamps) <svg onclick="copyToClipboard('noTsContent')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg>
-  </div>
-  <div id="noTsContent" class="content">
-    <pre>{{ video.transcript_no_ts }}</pre>
-  </div>
-
-  <!-- Collapsible for "with timestamps" -->
-  <div class="collapsible" onclick="toggleContent('withTsContent')">
-    Show/Hide Transcript (with timestamps) <svg onclick="copyToClipboard('withTsContent')" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg>
-  </div>
-  <div id="withTsContent" class="content">
-    <pre>{{ video.transcript_with_ts }}</pre>
-  </div>
-
-  
-
-  <script>
-  function toggleContent(id) {
-    const elem = document.getElementById(id);
-    if (elem.style.display === "none" || !elem.style.display) {
-      elem.style.display = "block";
-    } else {
-      elem.style.display = "none";
-    }
+<script>
+  function toggleSection(id) {
+    document.getElementById(id).classList.toggle('hidden');
   }
 
-    /**
-     * Copies the content of an element with the given ID to the clipboard.
-     * @param {string} elementId - The ID of the element whose content is to be copied.
-     */
-    function copyToClipboard(elementId) {
-      const element = document.getElementById(elementId);
-      if (!element) {
-        alert('Element not found.');
-        return;
-      }
-  
-      const content = element.innerText || element.textContent;
-  
-      navigator.clipboard.writeText(content).then(
-        function () {
-          //alert('Content copied to clipboard!');
-          console.log('Content copied to clipboard:', content);
-        },
-        function (err) {
-          alert('Failed to copy content: ', err);
-          console.error('Failed to copy content:', err);
-        }
-      );
+  /**
+   * Copies the content of an element with the given ID to the clipboard.
+   * @param {string} elementId - The ID of the element whose content is to be copied.
+   */
+  function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      alert('Element not found.');
+      return;
     }
-  </script>
+    const content = element.innerText || element.textContent;
+    navigator.clipboard.writeText(content).then(
+      function () {
+        console.log('Content copied to clipboard:', content);
+      },
+      function (err) {
+        alert('Failed to copy content: ' + err);
+        console.error('Failed to copy content:', err);
+      }
+    );
+  }
+</script>
 {% endblock %}

@@ -1,164 +1,146 @@
 {% extends "layout.html" %}
 {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Admin Settings</title>
-  <!-- Bootstrap 5 CSS -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  >
-  <style>
-    /* Example custom styling */
-    body {
-      background-color: #f8f9fa;
-      margin-top: 1rem;
-    }
-    .navbar-brand {
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-    .table th,
-    .table td {
-      vertical-align: middle;
-    }
-    .role-dropdown {
-      max-width: 180px;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- NAVBAR -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">
-        Admin Dashboard
-      </a>
-      <ul class="navbar-nav ms-auto">
-        <!-- Example: link back to home, or other pages -->
-        <li class="nav-item">
-          <a class="nav-link" href="/">Back to Home</a>
-        </li>
-      </ul>
-    </div>
-  </nav>
-
-  <!-- PAGE HEADER -->
-  <div class="container">
-    <div class="row mb-4">
-      <div class="col text-center">
-        <h1>User Management</h1>
-        <p class="text-secondary">
-          Manage user roles and permissions
-        </p>
-      </div>
-    </div>
-
-    <!-- FLASH MESSAGES (OPTIONAL) -->
-    {% if get_flashed_messages() %}
-      {% for message in get_flashed_messages() %}
-        <div class="alert alert-info" role="alert">
-          {{ message }}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Admin Header -->
+    <div class="bg-white dark:bg-gray-800 shadow">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    Admin Dashboard
+                </h1>
+                <a href="/" class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+                    Back to Home
+                </a>
+            </div>
         </div>
-      {% endfor %}
-    {% endif %}
+    </div>
 
-    <!-- USERS TABLE -->
-    <div class="row">
-      <div class="col">
-        <table class="table table-bordered table-striped table-hover align-middle">
-          <thead class="table-dark">
-            <tr>
-              <th style="width: 5%">ID</th>
-              <th style="width: 40%">Email</th>
-              <th style="width: 30%">Role</th>
-              <th style="width: 25%">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for user in users %}
-              <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.email }}</td>
-                <td>
-                  <!-- Show current role in text or as read-only? 
-                       Here, we'll just show text. -->
-                  <span class="badge bg-primary">{{ user.role }}</span>
-                </td>
-                <td>
-                  <!-- FORM to update role -->
-                  <form 
-                    action="{{ url_for('admin_update_role') }}" 
-                    method="POST" 
-                    class="d-flex align-items-center"
-                  >
-                    <input type="hidden" name="user_id" value="{{ user.id }}">
-                    <select
-                      name="role"
-                      class="form-select form-select-sm role-dropdown me-2"
-                    >
-                      <!-- Optionally, generate these from a roles list -->
-                      <option value="admin"
-                        {% if user.role == "admin" %} selected {% endif %}
-                      >admin</option>
-                      <option value="member"
-                        {% if user.role == "member" %} selected {% endif %}
-                      >member</option>
-                      <option value="reader"
-                        {% if user.role == "reader" %} selected {% endif %}
-                      >reader</option>
-                    </select>
-                    <button class="btn btn-success btn-sm" type="submit">
-                      Update
-                    </button>
-                  </form>
-                </td>
-              </tr>
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Page Header -->
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">
+                User Management
+            </h2>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">
+                Manage user roles and permissions
+            </p>
+        </div>
+
+        <!-- Flash Messages -->
+        {% if get_flashed_messages() %}
+            {% for message in get_flashed_messages() %}
+                <div class="mb-4 p-4 bg-blue-100 border-l-4 border-blue-500 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200">
+                    {{ message }}
+                </div>
             {% endfor %}
-          </tbody>
-        </table>
-      </div>
+        {% endif %}
+
+        <!-- Users Table -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden mb-8">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                ID
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Email
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Role
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for user in users %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                    {{ user.id }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                    {{ user.email }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                {% if user.role == 'admin' %}
+                                                    bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                                {% elif user.role == 'member' %}
+                                                    bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                                {% else %}
+                                                    bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                                {% endif %}">
+                                        {{ user.role }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <form action="{{ url_for('admin_update_role') }}" 
+                                          method="POST" 
+                                          class="flex items-center space-x-2">
+                                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                                        <select name="role"
+                                                class="block w-32 rounded-md border-gray-300 dark:border-gray-600 shadow-sm 
+                                                       focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white 
+                                                       text-sm">
+                                            <option value="admin" {% if user.role == "admin" %}selected{% endif %}>admin</option>
+                                            <option value="member" {% if user.role == "member" %}selected{% endif %}>member</option>
+                                            <option value="reader" {% if user.role == "reader" %}selected{% endif %}>reader</option>
+                                        </select>
+                                        <button type="submit" 
+                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm 
+                                                       leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 
+                                                       focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
+                                                       dark:focus:ring-offset-gray-800 transition-colors">
+                                            Update
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add New User Form -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Add New User
+            </h3>
+            <form action="/admin-add-user" method="POST" class="flex flex-wrap gap-4">
+                <div class="flex-1 min-w-[200px]">
+                    <input type="text" 
+                           name="new_email" 
+                           placeholder="Enter email" 
+                           required
+                           class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm 
+                                  focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white 
+                                  placeholder-gray-400 dark:placeholder-gray-500">
+                </div>
+                <div class="w-40">
+                    <select name="new_role" 
+                            required
+                            class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm 
+                                   focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                        <option value="reader">reader</option>
+                        <option value="member">member</option>
+                        <option value="admin">admin</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium 
+                                   rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 
+                                   focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors">
+                        Add User
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-
-    <!-- POTENTIAL FOR ADDING NEW USERS (Optional) -->
-  
-    <div class="row mt-4">
-      <div class="col">
-        <h5>Add New User</h5>
-        <form action="/admin-add-user" method="POST" class="row gy-2 gx-3 align-items-center">
-          <div class="col-auto">
-            <input 
-              type="text" 
-              class="form-control" 
-              name="new_email" 
-              placeholder="Enter email" 
-              required
-            >
-          </div>
-          <div class="col-auto">
-            <select name="new_role" class="form-select" required>
-              <option value="reader" selected>reader</option>
-              <option value="member">member</option>
-              <option value="admin">admin</option>
-            </select>
-          </div>
-          <div class="col-auto">
-            <button type="submit" class="btn btn-primary">Add User</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    
-
-  </div>
-
-  <!-- Bootstrap 5 JS -->
-  <script 
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
-  </script>
-</body>
-</html>
+</div>
 {% endblock %}

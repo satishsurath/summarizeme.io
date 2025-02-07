@@ -4,15 +4,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadStatus = document.getElementById("downloadStatus");
   const channelList = document.getElementById("channelList");
 
-  // 1. Start Download
+  // Start Download
   startDownloadBtn.addEventListener("click", async () => {
     const url = channelUrlInput.value.trim();
     if (!url) {
       downloadStatus.innerText = "Please enter a URL.";
+      downloadStatus.className = "mt-4 text-red-500 dark:text-red-400";
       return;
     }
 
     downloadStatus.innerText = "Starting download...";
+    downloadStatus.className = "mt-4 text-blue-500 dark:text-blue-400";
+    
     try {
       const res = await fetch("/api/channel/start", {
         method: "POST",
@@ -22,15 +25,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       if (data.status === "initiated") {
         downloadStatus.innerText = `Download initiated. Task ID: ${data.task_id}`;
+        downloadStatus.className = "mt-4 text-green-500 dark:text-green-400";
       } else {
         downloadStatus.innerText = `Error: ${data.message}`;
+        downloadStatus.className = "mt-4 text-red-500 dark:text-red-400";
       }
     } catch (err) {
       downloadStatus.innerText = `Error starting download: ${err}`;
+      downloadStatus.className = "mt-4 text-red-500 dark:text-red-400";
     }
   });
 
-  // 2. Load Already Downloaded Channels
+  // Load Channels
   async function loadChannels() {
     channelList.innerText = "Loading...";
     try {
@@ -41,61 +47,62 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // Build list: pencil icon first, then channel link
-      let html = "<ul>";
+      let html = '<ul class="space-y-4">';
       channels.forEach(chId => {
         html += `
-          <li>
-            <span class="edit-icon" data-channel="${chId}" style="cursor: pointer; margin-right: 10px;">
-              <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18">
-                <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/>
+          <li class="flex items-center space-x-4 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200">
+            <span class="edit-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors duration-200" data-channel="${chId}">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 -960 960 960">
+                <path fill="currentColor" d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Z"/>
               </svg>
             </span>
-            <span class="delete-icon" data-channel="${chId}" style="cursor: pointer; margin-right: 10px;">
-              <!-- Trash SVG, for example -->
-              <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>
-            </span>
-
-            <!-- New Refresh icon -->
-            <span class="refresh-icon" data-channel="${chId}" style="cursor: pointer; margin-right: 10px;">
-              <!-- SVG for refresh icon (use your preferred SVG) -->
-              <svg xmlns="http://www.w3.org/2000/svg" height="18" width="18" viewBox="0 0 24 24">
-                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 .34-.03.67-.08 1h2.02c.05-.33.06-.66.06-1 0-4.42-3.58-8-8-8zm-6 7c0-.34.03-.67.08-1H4.06c-.05.33-.06.66-.06 1 0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6z"/>
+            
+            <span class="delete-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-red-500 transition-colors duration-200" data-channel="${chId}">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 -960 960 960">
+                <path fill="currentColor" d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Z"/>
               </svg>
-            </span>                 
-            <span class="chat-icon" data-channel="${chId}" style="cursor: pointer; margin-right: 10px;">
-            <a href="/chat-channel/${chId}"> <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z"/></svg></a>
-            </span>                   
-            <span class="channel-name" data-channel="${chId}">
-              <a href="/videos/${chId}">${chId}</a>
             </span>
 
+            <span class="refresh-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-green-500 transition-colors duration-200" data-channel="${chId}">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 .34-.03.67-.08 1h2.02c.05-.33.06-.66.06-1 0-4.42-3.58-8-8-8zm-6 8c0-.34.03-.67.08-1H4.06c-.05.33-.06.66-.06 1 0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6z"/>
+              </svg>
+            </span>
 
+            <span class="chat-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-purple-500 transition-colors duration-200" data-channel="${chId}">
+              <a href="/chat-channel/${chId}" class="block">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 -960 960 960">
+                  <path fill="currentColor" d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Z"/>
+                </svg>
+              </a>
+            </span>
+
+            <span class="channel-name flex-grow" data-channel="${chId}">
+              <a href="/videos/${chId}" class="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200">${chId}</a>
+            </span>
           </li>
         `;
       });
-      html += "</ul>";
+      html += '</ul>';
       channelList.innerHTML = html;
 
-      // Bind events to edit icons
+      // Bind events
       document.querySelectorAll(".edit-icon").forEach(icon => {
         icon.addEventListener("click", handleEditClick);
       });
-      // Bind events to delete icons
       document.querySelectorAll(".delete-icon").forEach(icon => {
         icon.addEventListener("click", handleDeleteClick);
       });
-      // Bind events to refresh icons
       document.querySelectorAll(".refresh-icon").forEach(icon => {
         icon.addEventListener("click", handleRefreshClick);
       });
 
     } catch (err) {
-      channelList.innerText = `Error loading channels: ${err}`;
+      channelList.innerHTML = `<div class="text-red-500 dark:text-red-400">Error loading channels: ${err}</div>`;
     }
   }
 
-  // 3. Handle Edit Click
+  // Handle Edit Click
   function handleEditClick(event) {
     const oldName = event.currentTarget.dataset.channel;
     if (!oldName) return;
@@ -103,19 +110,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const spanElem = document.querySelector(`span.channel-name[data-channel="${oldName}"]`);
     if (!spanElem) return;
 
-    // Grab the current text from the link
     const linkElem = spanElem.querySelector("a");
     const currentValue = linkElem ? linkElem.textContent.trim() : oldName;
 
-    // Replace with an input
-    spanElem.innerHTML = `<input type="text" class="rename-input" value="${currentValue}" />`;
+    spanElem.innerHTML = `
+      <input type="text" 
+             class="rename-input w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+             value="${currentValue}" />
+    `;
+    
     const input = spanElem.querySelector(".rename-input");
     input.focus();
 
-    // We'll only call rename once
     let renameTriggered = false;
 
-    // On blur
     input.addEventListener("blur", () => {
       if (!renameTriggered) {
         renameTriggered = true;
@@ -123,7 +131,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // On Enter
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -135,24 +142,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 4. Rename on server
+  // Finalize Rename
   async function finalizeRename(oldName, newName) {
     if (newName.trim() === oldName.trim()) {
       revertSpan(oldName, oldName);
       return;
     }
+    
     try {
       const res = await fetch("/api/channels/rename", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ old_name: oldName, new_name: newName })
       });
+      
       const data = await res.json();
       if (data.status === "ok") {
-        // Revert with new name (including link)
         revertSpan(oldName, data.new_name);
-
-        // Update the edit icon's data-channel
         const editIcon = document.querySelector(`.edit-icon[data-channel="${oldName}"]`);
         if (editIcon) {
           editIcon.dataset.channel = data.new_name;
@@ -167,30 +173,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 5. Revert to a link with new name
+  // Revert Span
   function revertSpan(oldName, newName) {
     const spanElem = document.querySelector(`span.channel-name[data-channel="${oldName}"]`);
     if (!spanElem) return;
-    spanElem.innerHTML = `<a href="/videos/${newName}">${newName}</a>`;
-    // Update data-channel
+    
+    spanElem.innerHTML = `
+      <a href="/videos/${newName}" 
+         class="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200">
+        ${newName}
+      </a>
+    `;
     spanElem.dataset.channel = newName;
   }
 
-  // 6. Handle Delete Click
+  // Handle Delete Click
   function handleDeleteClick(event) {
     const channelName = event.currentTarget.dataset.channel;
     if (!channelName) return;
-  
-    // Optional: confirmation
+    
     if (!confirm(`Are you sure you want to delete the channel "${channelName}"? This will remove its videos if they are not used elsewhere.`)) {
       return;
     }
-  
-    // Call the delete API
+    
     deleteChannel(channelName);
   }
-  
-  // 7. Delete channel on server
+
+  // Delete Channel
   async function deleteChannel(channelName) {
     try {
       const res = await fetch("/api/channels/delete", {
@@ -199,13 +208,12 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ name: channelName }),
       });
       const data = await res.json();
-  
+    
       if (res.ok && data.status === "ok") {
-        alert(`Channel "${channelName}" has been deleted.`);
-        // Remove the channel’s <li> from the DOM
         const liElem = document.querySelector(`li > .channel-name[data-channel="${channelName}"]`)?.parentElement;
         if (liElem) {
-          liElem.remove();
+          liElem.classList.add('fade-out');
+          setTimeout(() => liElem.remove(), 300);
         }
       } else {
         alert(`Error deleting channel: ${data.message || "Unknown error"}`);
@@ -215,36 +223,45 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-
-
-// 8. Handle Fresh Click
-function handleRefreshClick(event) {
-  const channelName = event.currentTarget.dataset.channel;
-  if (!channelName) return;
-  
-  if (!confirm(`Refresh channel "${channelName}" to check for new videos?`)) {
-    return;
-  }
-  
-  // Call the refresh API
-  fetch("/api/channels/refresh", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ channel_name: channelName })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.status === "initiated") {
-      alert(`Refresh initiated. Task ID: ${data.task_id}`);
-    } else {
-      alert(`Error refreshing channel: ${data.message}`);
+  // Handle Refresh Click
+  function handleRefreshClick(event) {
+    const channelName = event.currentTarget.dataset.channel;
+    if (!channelName) return;
+    
+    if (!confirm(`Refresh channel "${channelName}" to check for new videos?`)) {
+      return;
     }
-  })
-  .catch(err => {
-    alert(`Error refreshing channel: ${err}`);
-  });
-}
+    
+    fetch("/api/channels/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channel_name: channelName })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === "initiated") {
+        const icon = event.currentTarget.querySelector('svg');
+        icon.classList.add('animate-spin');
+        setTimeout(() => icon.classList.remove('animate-spin'), 1000);
+        alert(`Refresh initiated. Task ID: ${data.task_id}`);
+      } else {
+        alert(`Error refreshing channel: ${data.message}`);
+      }
+    })
+    .catch(err => {
+      alert(`Error refreshing channel: ${err}`);
+    });
+  }
 
+  // Add fade-out animation style
+  const style = document.createElement('style');
+  style.textContent = `
+    .fade-out {
+      opacity: 0;
+      transition: opacity 300ms ease-in-out;
+    }
+  `;
+  document.head.appendChild(style);
 
   // Load channels on page load
   loadChannels();
