@@ -6,9 +6,7 @@
     <title>{{ title|default("YouTube Channel Summarizer") }}</title>
     
     <!-- Tailwind CSS -->
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-  
-    
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Dark mode script - set before page load -->
     <script>
@@ -18,7 +16,19 @@
         }
     </script>
     
-    
+    <!-- Tailwind and custom styles -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         /* Dark mode toggle animations */
         .dark-mode-toggle {
