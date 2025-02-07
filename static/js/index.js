@@ -48,37 +48,47 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       let html = '<ul class="space-y-4">';
-      channels.forEach(chId => {
+      channels.forEach(channel => {
         html += `
           <li class="flex items-center space-x-4 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200">
-            <span class="edit-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors duration-200" data-channel="${chId}">
+            <span class="edit-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors duration-200" data-channel="${channel.folder_name}">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 -960 960 960">
                 <path fill="currentColor" d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Z"/>
               </svg>
             </span>
             
-            <span class="delete-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-red-500 transition-colors duration-200" data-channel="${chId}">
+            <span class="delete-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-red-500 transition-colors duration-200" data-channel="${channel.folder_name}">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 -960 960 960">
                 <path fill="currentColor" d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Z"/>
               </svg>
             </span>
 
-            <span class="refresh-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-green-500 transition-colors duration-200" data-channel="${chId}">
+            <span class="refresh-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-green-500 transition-colors duration-200" data-channel="${channel.folder_name}">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 .34-.03.67-.08 1h2.02c.05-.33.06-.66.06-1 0-4.42-3.58-8-8-8zm-6 8c0-.34.03-.67.08-1H4.06c-.05.33-.06.66-.06 1 0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6z"/>
               </svg>
             </span>
 
-            <span class="chat-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-purple-500 transition-colors duration-200" data-channel="${chId}">
-              <a href="/chat-channel/${chId}" class="block">
+            <span class="chat-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-purple-500 transition-colors duration-200" data-channel="${channel.folder_name}">
+              <a href="/chat-channel/${channel.folder_name}" class="block">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 -960 960 960">
                   <path fill="currentColor" d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Z"/>
                 </svg>
               </a>
             </span>
 
-            <span class="channel-name flex-grow" data-channel="${chId}">
-              <a href="/videos/${chId}" class="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200">${chId}</a>
+            <span class="chat-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-purple-500 transition-colors duration-200" data-channel="${channel.folder_name}">
+            <a href="https://www.youtube.com/playlist?list=${channel.original_playlist_id}" 
+                target="_blank"
+                class="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors">
+                <svg class="w-5 h-5" viewBox="0 0 48 48">
+                    <use href="#icon-summarizeYouTube" xlink:href="#icon-summarizeYouTube"></use>
+                </svg>
+            </a>
+            </span>
+
+            <span class="channel-name flex-grow" data-channel="${channel.folder_name}">
+              <a href="/videos/${channel.folder_name}" class="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200">${channel.folder_name}</a>
             </span>
           </li>
         `;

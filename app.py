@@ -414,12 +414,16 @@ def api_list_channels():
     session = SessionLocal()
     try:
         folders = (
-            session.query(VideoFolder.folder_name)
+            session.query(VideoFolder.folder_name, VideoFolder.original_playlist_id)
             .distinct()
             .all()
         )
-        # Convert to a simple list of folder names
-        folder_list = [f.folder_name for f in folders]
+
+        # Convert to a list of dictionaries
+        folder_list = [
+            {"folder_name": f.folder_name, "original_playlist_id": f.original_playlist_id}
+            for f in folders
+        ]
     finally:
         session.close()
 
