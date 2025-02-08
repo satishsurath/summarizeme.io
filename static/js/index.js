@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
     channelList.innerText = "Loading...";
     try {
       const res = await fetch("/api/channels");
-      const channels = await res.json();
+      let channels = await res.json();
           // If channels is not an array (e.g., a single object), convert it to an array
     if (!Array.isArray(channels)) {
       channels = [channels];
@@ -245,7 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!confirm(`Refresh channel "${channelName}" to check for new videos?`)) {
       return;
     }
-    
+    console.log('refreshing channel', channelName);
     fetch("/api/channels/refresh", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -254,6 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .then(response => response.json())
     .then(data => {
       if (data.status === "initiated") {
+        console.log('refresh initiated', data.task_id);
         const icon = event.currentTarget.querySelector('svg');
         icon.classList.add('animate-spin');
         setTimeout(() => icon.classList.remove('animate-spin'), 1000);
