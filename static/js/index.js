@@ -255,9 +255,9 @@ document.addEventListener("DOMContentLoaded", () => {
     .then(data => {
       if (data.status === "initiated") {
         console.log('refresh initiated', data.task_id);
-        const icon = event.currentTarget.querySelector('svg');
-        icon.classList.add('animate-spin');
-        setTimeout(() => icon.classList.remove('animate-spin'), 1000);
+        // const icon = event.currentTarget.querySelector('svg');
+        // icon.classList.add('animate-spin');
+        // setTimeout(() => icon.classList.remove('animate-spin'), 1000);
         alert(`Refresh initiated. Task ID: ${data.task_id}`);
       } else {
         alert(`Error refreshing channel: ${data.message}`);
