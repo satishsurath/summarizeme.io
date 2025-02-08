@@ -42,6 +42,10 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await fetch("/api/channels");
       const channels = await res.json();
+          // If channels is not an array (e.g., a single object), convert it to an array
+    if (!Array.isArray(channels)) {
+      channels = [channels];
+    }
       if (!Array.isArray(channels) || channels.length === 0) {
         channelList.innerText = "No channels found.";
         return;
