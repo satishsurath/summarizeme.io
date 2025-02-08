@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
               </a>
             </span>
 
-            <span class="chat-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-purple-500 transition-colors duration-200" data-channel="${channel.folder_name}">
+            <span class="yt-icon cursor-pointer text-gray-600 dark:text-gray-400 hover:text-purple-500 transition-colors duration-200" data-channel="${channel.folder_name}">
             <a href="https://www.youtube.com/playlist?list=${channel.original_playlist_id}" 
                 target="_blank"
                 class="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors">
