@@ -35,6 +35,7 @@ jobs:
           docker rm summarizeme.io || true
           # Run new container
           docker run -d --name summarizeme.io \
+            --restart always \
             --env-file=/home/satsur/.env \
             -p 8000:8000 \
             ghcr.io/${{ github.repository }}:latest
